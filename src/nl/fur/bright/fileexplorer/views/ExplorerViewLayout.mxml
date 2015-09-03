@@ -51,9 +51,9 @@
 					allowDropBetweenNodes="false"
 					id="folder_tree"
 					dropEnabled="true"
-					icon="@Embed(source='assets/folder.png')"
-					openedfoldericon="@Embed(source='assets/folder.png')"
-					closedfoldericon="@Embed(source='assets/folder.png')"
+					icon="@Embed(source='/assets/folder.png')"
+					openedfoldericon="@Embed(source='/assets/folder.png')"
+					closedfoldericon="@Embed(source='/assets/folder.png')"
 					dataProvider="{Model.instance.filesVO.folders}"
 					width="99%"
 					height="100%" />
