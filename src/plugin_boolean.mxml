@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	verticalAlign="middle"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="horizontal" xmlns:controls="nl.bs10.bright.controls.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import nl.bs10.brightlib.objects.PluginProperties;
+			private var _label:String;
+			[Bindable] private var _selected:Boolean;
+			private var _data:*;
+			private var _value:*;
+			
+			private var _displaylabel:String;
+		
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Boolean";
+				pp.version = "3.0.1";
+				pp.modificationdate = new Date(2012,04,01);
+				pp.type = "boolean";
+				pp.contenttype = "string";
+				pp.properties = [];
+				return pp;
+			}
+			
+			public function destroy():void {
+				_data =
+				_value = null;
+				label = 
+				displaylabel = null;
+			}
+			
+			override public function set label(value:String):void {
+				super.label = value;
+				_label = value;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(value:String):void {
+				if(value !== _displaylabel) {
+					_displaylabel = value;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				if(!val) 
+					return;
+				_data = val;
+					
+				if(_data.hasOwnProperty("value") && _value == null)
+					value = _data.value;
+			}
+			
+			override public function get data():Object {
+				return this._data;
+			}
+				
+			public function set value(val:*):void {
+				_value = (val == true || val == 1 || val == 'true');
+				_selected = (val == true || val == 1 || val == 'true');
+			}
+			
+			public function get value():* {
+				_value = boolean_chb.selected;
+				return _value; 
+			}
+			
+			public function validate():Object {
+				return {valid:true};
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+		
+	<controls:BrightCheckbox
+		fieldname="{displaylabel}"
+		selected="{_selected}"
+		id="boolean_chb" />
+	
+</mx:Module>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module 
+	horizontalAlign="left"
+	width="100%"
+	height="0"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	verticalAlign="bottom"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="horizontal" >
+	
+	<mx:Script>
+		<![CDATA[
+			import nl.bs10.brightlib.objects.PluginProperties;
+			
+			private var _value:*;
+			private var _displaylabel:String;
+			
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Hidden";
+				pp.version = "1.0.1";
+				pp.type = "hidden";
+				pp.contenttype = "string";
+				pp.modificationdate = new Date(2014,07,10);
+				return pp;
+			}
+			
+			public function set displaylabel(val:String):void {
+				_displaylabel = val;
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			
+			public function set value(val:*):void {
+				_value = val;
+			}
+			
+			public function get value():* {
+				if(typeof(_value) == 'undefined')
+					return null;
+				
+				return _value;
+			}
+			
+			
+			public function validate():Object {
+				return {valid:true};
+			}
+			
+			public function destroy():void {
+				data =
+				label =
+				displaylabel =null;
+			}
+		]]>
+	</mx:Script>
+	
+</mx:Module>

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	verticalAlign="bottom"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="vertical" 
+	xmlns:controls="nl.bs10.bright.controls.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import nl.bs10.brightlib.objects.PluginProperties;
+			import com.adobe.serialization.json.JSON;
+			import nl.bs10.brightlib.events.FileExplorerEvent;
+			import mx.core.Application;
+			
+			[Bindable] private var _label:String;
+			[Bindable] private var _data:Object;
+			[Bindable] private var _value:Object;
+			[Bindable] private var _title:String = "";
+			[Bindable] private var _text:String = "";
+			private var _displaylabel:String;
+		
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Text with Title";
+				pp.version = "3.0.0";
+				pp.modificationdate = new Date(2011,09,13);
+				pp.type = "advanced_text";
+				pp.contenttype = "json";
+				pp.properties = [{name:"required", type:"boolean"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				
+			}
+		
+			override public function set label(fnval:String):void {
+				super.label = fnval;
+				_label = fnval;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable]
+			public function set displaylabel(fnval:String):void {
+				_displaylabel = fnval;
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				
+				if(!val) 
+					return;
+				
+				_data = val;
+					
+				if(_data.hasOwnProperty("value") && !_value)
+					value = _data.value;
+					
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			public function set value(fnval:*):void {
+				// Prevent nullpointer exception
+				var val:Object;
+				if(fnval && (fnval.hasOwnProperty("title") || fnval.hasOwnProperty("text"))) {
+					val = fnval;
+				} else {
+					try {
+						if(fnval is String)
+							val = JSON.decode(fnval.toString());
+					} catch(ex:Error) {/*Swallow it*/}
+				}
+				
+				_value = val;
+				if(_value.hasOwnProperty("text"))
+					_text = _value.text;
+				
+				if(_value.hasOwnProperty("title"))
+					_title = _value.title;
+				invalidateProperties();
+			}
+			
+			public function get value():* {
+					
+				if((!title_txt || !text_txt) || (title_txt.text == '' && text_txt.text == ''))
+					return null;
+				_value = {};
+				_value.title = title_txt.text;
+				_value.text = _text;
+				
+				
+				return JSON.encode(_value); 
+			}
+			
+			public function validate():Object {
+				return {valid:true};
+			}
+			
+			public function openEditor():void {
+				ExternalInterface.call("openEditor", _text, _label + "flCloseEditor");
+				ExternalInterface.addCallback(_label + "flCloseEditor", flCloseEditor);
+			}
+			
+			public function flCloseEditor(fnvalue:*):void {
+				_text = fnvalue;
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:HBox
+		width="100%">
+		
+		<mx:Label
+			width="150"
+			text="{displaylabel + ':'}"
+			id="label_lbl" />
+		
+		<mx:Label
+			width="150"
+			text="Title:"/>
+		
+		<controls:BrightTextInput
+			id="title_txt"
+			width="300"
+			fieldname="title"
+			text="{_title}" />
+	
+	</mx:HBox>
+	
+	<mx:HBox
+		width="100%">
+		
+		<mx:Spacer
+			width="150" />
+		
+		<mx:Label
+			width="150"
+			text="Text:" />
+		
+		<controls:BrightTextArea
+			fieldname="text"
+			editable="false"
+			width="100%"
+			height="150"
+			toolTip="Doubleclick to edit"
+			doubleClickEnabled="true"
+			useHandCursor="true"
+			mouseChildren="false"
+			buttonMode="true"
+			selectable="false"
+			htmlText="{_text}"
+			doubleClick="openEditor()"
+			id="text_txt" />
+		
+	</mx:HBox>
+	
+</mx:Module>

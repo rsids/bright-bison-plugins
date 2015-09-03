@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	verticalAlign="bottom"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="horizontal" 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:controls="nl.bs10.bright.controls.*">
+
+	<mx:Script>
+		<![CDATA[
+			import nl.bs10.brightlib.objects.PluginProperties;
+			import nl.bs10.brightlib.events.FileExplorerEvent;
+			import nl.fur.bright.fileexplorer.model.Model;
+			import mx.core.Application;
+			
+			private var _label:String;
+			private var _data:Object;
+			private var _filter:Array = new Array();
+			[Bindable]private var _value:String;
+			
+			private var _displaylabel:String;
+		
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Folder";
+				pp.version = "3.0.1";
+				pp.type = "folder";
+				pp.modificationdate = new Date(2012,05,19);
+				pp.contenttype = "string";
+				pp.properties = [{name: "required", type:"boolean"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				data = null;
+				displaylabel = null;
+				label = null;
+				value = null;
+				_filter = null; 
+			}
+			
+			override public function set label(value:String):void {
+				super.label = value;
+				_label = value;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(value:String):void {
+				if(value !== _displaylabel) {
+					_displaylabel = value;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				
+				if(!val) 
+					return;
+				
+				_data = val;
+				
+				if(_data.hasOwnProperty("value") && (!value || value.length == 0))
+					value = _data.value;
+				
+				_filter = new Array();
+				if(_data.hasOwnProperty("filter"))
+					_filter = _data.filter;
+					
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+				
+			public function set value(val:*):void {
+				
+				_value = (val) ? val.toString() : null;
+			}
+			
+			public function get value():* {
+				return _value; 
+			}
+			
+			public function validate():Object {
+				return {valid:true};
+			}
+			
+			private function _openFileChooser():void {
+				dispatchEvent(new FileExplorerEvent(FileExplorerEvent.OPENFILEEXPLOREREVENT, _chosenFileCallback, false, null, true ));
+			}
+			
+			private function _chosenFileCallback(fnvalue:Object):void {
+				value = fnvalue.path;
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+		
+	<controls:BrightTextInput
+		id="text_txt"
+		editable="false"
+		width="300"
+		click="value=''"
+		fieldname="{displaylabel}"
+		text="{_value.toString()}" />
+	
+	<mx:Button
+		label="Browse..."
+		click="_openFileChooser()"/>
+			
+</mx:Module>

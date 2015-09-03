@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<degrafa:GraphicRectangularBorderSkin
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:degrafa="http://www.degrafa.com/2007"
+	width="400" 
+	height="300" xmlns:geometry="com.degrafa.geometry.*">
+	
+	<mx:Script>
+		<![CDATA[
+			[Bindable] private var _skinWidth:Number = 0;
+			
+			[Bindable] private var _skinHeight:Number = 0;
+			
+			override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void {
+				_skinWidth = unscaledWidth;
+				_skinHeight = unscaledHeight;
+				super.updateDisplayList(unscaledWidth, unscaledHeight);
+			}
+		]]>
+	</mx:Script>
+	
+	<degrafa:fills>
+		
+		<degrafa:LinearGradientFill angle="90" id="bg_gradient">
+			<degrafa:GradientStop ratio="0" color="#ffffff" alpha=".8" />
+			<degrafa:GradientStop ratio="1" color="#ffffff" alpha=".6" />
+		</degrafa:LinearGradientFill>
+		
+	</degrafa:fills>
+	
+	<degrafa:geometry>
+		
+		<degrafa:RoundedRectangle
+			width="{_skinWidth}"
+			height="{_skinHeight}"
+			cornerRadius="3"
+			fill="{bg_gradient}" />
+			
+	</degrafa:geometry>
+	
+	<degrafa:filters>
+	
+		<mx:DropShadowFilter alpha=".4" angle="90" distance="5" blurX="4" blurY="4"/>
+
+	</degrafa:filters>
+	
+</degrafa:GraphicRectangularBorderSkin>

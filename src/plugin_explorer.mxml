@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppController
+	layout="vertical" 
+	horizontalAlign="left"
+	addedToStage="reload()"
+	width="100%" height="100%"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns="nl.fur.bright.fileexplorer.controllers.*"
+	xmlns:views="nl.fur.bright.fileexplorer.views.*">
+	
+	<views:ExplorerViewLayout
+		width="100%"
+		height="100%" />
+	
+</AppController>

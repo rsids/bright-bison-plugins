@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<views:LayersView
+	title="Layers"
+	height="100%"
+	width="201"
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns="nl.bs10.gmaps.views.*"
+	xmlns:components="nl.bs10.brightlib.components.*" xmlns:views="nl.fur.bright.maps.views.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import nl.bs10.brightlib.controllers.IconController;
+			import mx.collections.ArrayCollection;
+		]]>
+	</mx:Script>
+	
+	<mx:Canvas
+		width="100%"
+		height="100%"
+		borderColor="#929292"
+		borderStyle="solid"
+		borderThickness="1"
+		backgroundColor="#ffffff"
+		horizontalScrollPolicy="off"
+		verticalScrollPolicy="off">
+			
+		<mx:Canvas
+			width="100%"
+			top="0"
+			bottom="43">
+			
+			<mx:DataGrid
+				styleName="noborder"
+				id="layers_dg"
+				doubleClickEnabled="true"
+				showHeaders="false"
+				width="100%"
+				height="100%"
+				selectedIndex="0"
+				sortableColumns="false"
+				dragEnabled="true"
+				dropEnabled="true"
+				dragMoveEnabled="true"
+				dataProvider="{layers}"
+				editable="true">
+				
+				<mx:columns>
+					<mx:DataGridColumn
+						width="18"
+						editable="false"
+						resizable="false"
+						headerText="">
+						<mx:itemRenderer>
+							<mx:Component>
+								<mx:Canvas>
+									<!-- Inside a canvas, because a script tag is not allowed inside a component tag -->
+									<mx:Script>
+										<![CDATA[
+											import nl.bs10.brightlib.controllers.IconController;
+										]]>
+									</mx:Script>
+									<mx:Image x="2" source="{IconController.getGray('move')}"/>
+								</mx:Canvas>
+							</mx:Component>						
+						</mx:itemRenderer>
+					</mx:DataGridColumn>
+					
+					<mx:DataGridColumn
+						width="18"
+						rendererIsEditor="true"
+						resizable="false"
+						editorDataField="selected"
+						
+						headerText="">
+						<mx:itemRenderer>
+							<mx:Component>
+								<mx:CheckBox toolTip="Visible by default" paddingLeft="2" click="data.visible=!data.visible" selected="{data.visible}"/>
+							</mx:Component>						
+						</mx:itemRenderer>
+					</mx:DataGridColumn>
+					
+					<mx:DataGridColumn
+						editable="false"
+						headerText="Layer"
+						dataField="label" />
+						
+				</mx:columns>
+				
+			</mx:DataGrid>
+				
+		</mx:Canvas>
+				
+		<mx:Canvas
+			width="100%"
+			borderColor="#929292"
+			borderStyle="solid"
+			borderThickness="1"
+			height="43"
+			bottom="0"
+			borderSides="top"
+			backgroundColor="#eaeaea">
+			
+			<mx:HBox styleName="grayIconBar" paddingLeft="14" verticalCenter="0" horizontalScrollPolicy="off">
+				
+				<components:GrayImageButton 
+					click="addLayer()"
+					source="{IconController.getGray('add')}" 
+					toolTip="Add layer"	/>
+				
+				<components:GrayImageButton
+					click="deleteLayer()" 
+					source="{IconController.getGray('trash')}" 
+					enabled="{layers_dg.selectedItem}"
+					toolTip="Delete layer"  />
+						
+			</mx:HBox>
+			
+		</mx:Canvas>
+		
+	</mx:Canvas>
+				
+</views:LayersView>

@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="absolute" 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:controls="nl.bs10.bright.controls.*" 
+	xmlns:components="nl.bs10.brightlib.components.*">
+	<mx:Script>
+		<![CDATA[
+			/**
+			 * Plugin Element
+			 * @todo Implement Required
+			 */
+		
+			import nl.bs10.brightlib.objects.Page;
+			import nl.bs10.brightlib.events.BrightEvent;
+			import nl.flexperiments.display.Transformations;
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			
+			import com.adobe.serialization.json.JSON;
+			
+			import mx.core.Application;
+			import mx.collections.ArrayCollection;
+			
+			private var _label:String;
+			private var _data:Object;
+			private var _value:*;
+			private var _description:String;
+			private var _filter:Array = new Array();
+			
+			private var _displaylabel:String;
+			private var _allowduplicates:Boolean = false;
+			
+			private var _dataChanged:Boolean;
+			private var _valueChanged:Boolean;
+			private var _elementsChanged:Boolean;
+			
+			private var _multiple:Boolean;
+			
+			[Bindable] private var _elements:ArrayCollection = new ArrayCollection();
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Page Element";
+				pp.version = "2.0.1";
+				pp.type = "element";
+				pp.contenttype = "elements";
+				pp.modificationdate = new Date(2013,05,22);
+				pp.properties = [{name:"required", type:"boolean"}, {name:"filter", type:"array"}, {name:"multiple", type:"boolean"}, {name:"allowduplicates", type:"boolean"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				
+			}
+			
+			override public function set label(value:String):void {
+				super.label = value;
+				_label = value;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable]
+			public function set displaylabel(value:String):void {
+				_displaylabel = value;
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			[Bindable(event="multipleChanged")]
+			protected function set multiple(value:Boolean):void {
+				if(value !== _multiple) {
+					_multiple = value;
+					dispatchEvent(new Event("multipleChanged"));
+				}
+			}
+			
+			protected function get multiple():Boolean {
+				return _multiple;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				
+				if(!val) 
+					return;
+				
+				_data = val;
+				_dataChanged = true;
+				invalidateProperties();
+				
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			public function set value(val:*):void {
+				if(!val)
+					return;
+				_value = val;
+				_valueChanged = true;
+				invalidateProperties();
+			}
+			
+			public function get value():* {
+				return _value; 
+			}
+			
+			public function validate():Object {
+				/* if(_data.hasOwnProperty("required") && (!_path || _path == "")) {
+					return {valid:false, reasons:["The field '" + displaylabel + "' is required"]};
+				} */
+				return {valid:true};
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				
+				var ids:Array = new Array();
+				var p:Page;
+				
+				if(_dataChanged) {
+					_dataChanged = false;
+					
+					if(_data.hasOwnProperty("value") && !_value)
+						value = _data.value;
+					
+					_filter = new Array();
+					if(_data.hasOwnProperty("filter")) {
+						_filter = _data.filter;
+					}
+					
+					if(_data.hasOwnProperty("multiple")) {
+						multiple = _data.multiple as Boolean;
+					}
+					
+					if(_data.hasOwnProperty("allowduplicates")) {
+						_allowduplicates = _data.allowduplicates as Boolean;
+					}
+						
+				}
+				
+				if(_valueChanged) {
+					_valueChanged = false;
+					if(_value) {
+						// Fetch values!
+						if(_value.length > 0) {
+							ids = new Array();
+							for each(p in _value as Array) {
+								ids.push(p.pageId);
+							}
+							_elements = new ArrayCollection(_value as Array);
+							_value = ids.join(",").toString();
+						} 
+					}
+				}
+				
+				if(_elementsChanged) {
+					_elementsChanged = false;
+					ids = new Array();
+					for each(p in _elements) {
+						ids.push(p.pageId);
+					}
+					_value = ids.join(",").toString();
+				}
+			
+			}
+			
+			private function _addElement():void {
+				var ev:BrightEvent = new BrightEvent(BrightEvent.DATAEVENT, {type:"openElementExplorer", multiple:multiple, filter:_filter, callback:_callbackFn});
+				dispatchEvent(ev); 
+			}
+			
+			private function _moveElement(dir:int):void {
+				var index:int = element_lst.selectedIndex;
+				var el:Page = _elements.removeItemAt(element_lst.selectedIndex) as Page;
+				if(dir == 1) {
+					index++;
+					index = Math.min(_elements.length, index);
+				} else {
+					index--;
+					index = Math.max(0, index);
+				}
+				_elements.addItemAt(el, index);
+				element_lst.selectedItem = el;
+				_elementsChanged = true;
+				invalidateProperties();
+			}
+			
+			private function _deleteElement():void {
+				_elements.removeItemAt(element_lst.selectedIndex);
+				_elements.refresh();
+				_elementsChanged = true;
+				invalidateProperties();
+			}
+			
+			private function _callbackFn(items:Array):void {
+				var varr:Array = new Array();
+				for each(var item:Page in items) {
+					varr.push(item.pageId);
+				}
+				var _ori:Array = new Array();
+				if(!_value) 
+					_value = "";
+
+				if(typeof _value == 'string')
+					_ori = _value.split(",");
+				
+				_value = varr.concat(_ori).join(",");
+				if(String(_value).charAt(_value.length-1) == ",")
+					_value = String(_value).substr(0, _value.length -1);
+				
+				_elements = new ArrayCollection(_elements.source.concat(items));
+				_elements.refresh();
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+	
+	<mx:List
+		left="158"
+		right="{button_hb.width}"
+		itemRenderer="nl.bs10.element.ElementRenderer"
+		y="0"
+		dataProvider="{_elements}"
+		id="element_lst"
+		height="{(multiple) ? 150 : 23}" />
+		
+	<mx:HBox
+		right="0"
+		id="button_hb">
+		
+		<components:GrayImageButton
+			source="{IconController.getGray('add')}"
+			toolTip="Add page element"
+			click="_addElement()" />
+		
+		<components:GrayImageButton
+			source="{IconController.DOWNARROW}"
+			toolTip="Move element down"
+			visible="{multiple &amp;&amp; _elements.length &gt; 1}"
+			includeInLayout="{multiple &amp;&amp; _elements.length &gt; 1}"
+			click="_moveElement(1)" />
+		
+		<components:GrayImageButton
+			source="{IconController.UPARROW}"
+			toolTip="Move element up"
+			visible="{multiple &amp;&amp; _elements.length &gt; 1}"
+			includeInLayout="{multiple &amp;&amp; _elements.length &gt; 1}"
+			click="_moveElement(-1)" />
+		
+		<components:GrayImageButton
+			source="{IconController.getIcon('delete')}"
+			toolTip="Remove page element"
+			visible="{_elements.length != 0}"
+			enabled="{element_lst.selectedItem}"
+			includeInLayout="{_elements.length != 0}"
+			click="_deleteElement()" />
+		
+	</mx:HBox>
+
+</mx:Module>

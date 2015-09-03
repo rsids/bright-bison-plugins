@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="absolute" 
+	xmlns:controls="nl.bs10.bright.controls.*">
+	<mx:Script>
+		<![CDATA[
+			import nl.flexperiments.display.Transformations;
+		]]>
+	</mx:Script>
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			import com.adobe.serialization.json.JSON;
+			import nl.bs10.brightlib.events.FileExplorerEvent;
+			import nl.fur.bright.fileexplorer.model.Model;
+			import mx.core.Application;
+			
+			private var _label:String;
+			private var _data:Object;
+			private var _value:String;
+			private var _showThumbnail:Boolean;
+			private var _description:String;
+			private var _filter:Array = new Array();
+			
+			private var _minwidth:Number;
+			private var _minheight:Number;
+			private var _maxwidth:Number;
+			private var _maxheight:Number;
+			
+			[Bindable] private var _thumb:*;
+
+			private var _displaylabel:String;
+			
+			private var _dataChanged:Boolean;
+			private var _valueChanged:Boolean;
+			private var _orientation:String = '';
+			private var _setByVal:Boolean;
+			
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "File";
+				pp.version = "4.0.1";
+				pp.type = "file";
+				pp.modificationdate = new Date(2012,06,25);
+				pp.contenttype = "string";
+				pp.properties = [{name: "required", type:"boolean"}, 
+								{name: "filter", type:"array"}, 
+								{name: "displayAsThumb", type:"boolean"},
+								{name: "minwidth", type:"number"},
+								{name: "minheight", type:"number"},
+								{name: "maxwidth", type:"number"},
+								{name: "maxheight", type:"number"},
+								{name: "orientation", type:"enum", values:["landscape","portrait"]}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				
+				_thumb = null;
+			}
+			
+			public function validate():Object {
+				if(_data.hasOwnProperty("required") && (!_value || _value == "")) {
+					return {valid:false, reasons:["The field '" + displaylabel + "' is required"]};
+				}
+				return {valid:true};
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				
+				if(_dataChanged) {
+					_dataChanged = false;
+					_setUnload();
+					
+					if(_data.hasOwnProperty("value") && !_value)
+						value = _data.value;
+					
+					if(_data.hasOwnProperty("minwidth")) _minwidth = Number(data.minwidth);
+					if(_data.hasOwnProperty("maxwidth")) _maxwidth = Number(data.maxwidth);
+					if(_data.hasOwnProperty("minheight")) _minheight = Number(data.minheight);
+					if(_data.hasOwnProperty("maxheight")) _maxheight = Number(data.maxheight);
+					if(_data.hasOwnProperty("orientation")) _orientation = data.orientation;
+					
+					_filter = new Array();
+					if(_data.hasOwnProperty("filter")) {
+						_filter = _data.filter;
+					}
+					
+					
+					if(_data.hasOwnProperty("displayAsThumb"))
+						showThumbnail = (_data.displayAsThumb == "true" || _data.displayAsThumb == "1" || _data.displayAsThumb == 1 || _data.displayAsThumb == true);	
+				}
+				
+				if(_valueChanged) {
+					_valueChanged = false;
+					_thumb = IconController.getGray('noimage');
+					_setUnload();
+					if(_value != "") {
+						_setByVal = true;
+						var ldr:Loader = new Loader();
+						ldr.load(new URLRequest(parentApplication.getModelValue('applicationVO.config.filesettings.fileurl') + _value));
+						ldr.contentLoaderInfo.addEventListener(Event.COMPLETE, _loadComplete, false, 0, true);
+						ldr.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, _setUnload, false, 0, true);
+						ldr.contentLoaderInfo.addEventListener(HTTPStatusEvent.HTTP_STATUS, function():void{}, false, 0, true);
+					}
+					
+				}
+				
+			}
+			
+			private function _loadComplete(event:Event):void {
+				var ldr:LoaderInfo = event.currentTarget as LoaderInfo;
+				
+				var errors:Array = [];
+				if(!isNaN(_minwidth)) {
+					if(ldr.content.width < _minwidth) {
+						// Image does not meet specified width
+						errors.push("The selected image is too small, the minimum width is " + _minwidth + "px\nThe selected image has a width of "+ldr.content.width + "px");
+						
+					}
+				}
+				if(!isNaN(_minheight)) {
+					if(ldr.content.height < _minheight) {
+						// Image does not meet specified width
+						errors.push("The selected image is too small, the minimum height is " + _minheight + "px\nThe selected image has a height of "+ldr.content.height + "px");
+						
+					}
+				}
+				if(!isNaN(_maxwidth)) {
+					if(ldr.content.width > _maxwidth) {
+						// Image does not meet specified width
+						errors.push("The selected image is too large, the maximum width is " + _maxwidth + "px\nThe selected image has a width of "+ldr.content.width + "px");
+						
+					}
+				}
+				if(!isNaN(_maxheight)) {
+					if(ldr.content.height > _maxheight) {
+						// Image does not meet specified width
+						errors.push("The selected image is too large, the maximum width is " + _maxheight + "px\nThe selected image has a width of "+ldr.content.height + "px");
+						
+					}
+				}
+				
+				if(_orientation != '') {
+					var imgorientation:String = ldr.content.height < ldr.content.width ? 'landscape':'portrait';
+					if(imgorientation != _orientation) {
+						errors.push("The selected image has an orientation of " + imgorientation + " while a " +_orientation + " image is required");
+						
+					}
+				}
+				if(errors.length > 0) {
+					if(_setByVal) {
+						warning_img.visible = true;
+						warning_img.includeInLayout = true;
+						toolTip = errors.join("\n");
+						setStyle('backgroundColor', 0xFFFFAD);
+					} else {
+						Alert.show(errors.join("\n"));
+						value = '';
+						_setUnload();
+						return;
+					}
+				}
+				
+				var bmd:BitmapData = new BitmapData(100,100, true, 0x000000);
+				var m:Matrix = Transformations.getScaleMatrix(ldr.content, 100,100, false);
+				bmd.draw(ldr.content, m, null, null, null, true);
+				_thumb = new Bitmap(bmd);
+				_thumb.smoothing = true;
+				_thumb.pixelSnapping = 'never';
+				thumb_img.source = _thumb;
+			}
+			
+			private function _openFileChooser():void {
+				dispatchEvent(new FileExplorerEvent(FileExplorerEvent.OPENFILEEXPLOREREVENT, _chosenFileCallback, false, _filter));
+			}
+			
+			private function _chosenFileCallback(fnvalue:Object):void {
+				setStyle('backgroundColor', null);
+				
+				warning_img.visible = false;
+				warning_img.includeInLayout = false;
+				_setByVal = false;
+				value = fnvalue.path + fnvalue.filename;
+			}
+			
+			private function _setUnload(event:* = null):void {
+				_thumb = IconController.getGray('noimage');
+			}
+			
+			
+			override public function set label(value:String):void {
+				super.label = value;
+				_label = value;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable]
+			public function set displaylabel(value:String):void {
+				_displaylabel = value;
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				
+				if(!val) 
+					return;
+				
+				_data = val;
+				
+				_dataChanged = true;
+				invalidateProperties();
+				
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			[Bindable(event="showThumbnailChanged")]
+			public function get showThumbnail():Boolean {
+				return _showThumbnail;
+			}
+			
+			public function set showThumbnail(value:Boolean):void {
+				if(value !== _showThumbnail) {
+					_showThumbnail = value;
+					dispatchEvent(new Event("showThumbnailChanged"));
+				}
+			}
+			
+			[Bindable(event="valueChanged")]
+			public function set value(val:*):void {
+				if(val !== _value) {
+					_value = val.toString();
+					_valueChanged = true;
+					invalidateProperties();
+					dispatchEvent(new Event("valueChanged"));
+				}
+			}
+			
+			public function get value():* {
+				return _value; 
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+	
+	<mx:Image
+		width="100"
+		height="100"
+		x="158"
+		id="thumb_img"
+		toolTip="Click to reset"
+		click="value='';_setUnload()"
+		styleName="listBox"
+		visible="{showThumbnail}"
+		source="{_thumb}"
+		includeInLayout="{showThumbnail}"
+		scaleContent="false" />
+	
+	<mx:HBox 
+		x="{(showThumbnail) ? 266 : 158}" 
+		y="0" 
+		width="100%" 
+		horizontalGap="5"
+		paddingLeft="10"
+		horizontalScrollPolicy="off"
+		verticalScrollPolicy="off"
+		height="35">
+		
+		<controls:BrightTextInput
+			id="file_txt"
+			editable="false"
+			click="value='';_setUnload()"
+			width="100%"
+			fieldname="{displaylabel}"
+			text="{value.toString()}" />
+		
+		<mx:Button
+			label="Browse..."
+			click="_openFileChooser()"/>
+		
+		<mx:Image 
+			id="warning_img"
+			visible="false"
+			includeInLayout="false"
+			source="{IconController.getIcon('error')}"/>
+	</mx:HBox>
+	
+	
+</mx:Module>

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module 
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	verticalAlign="bottom"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="horizontal" xmlns:controls="nl.bs10.bright.controls.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.validators.Validator;
+			
+			import nl.bs10.brightlib.controllers.ValidatorController;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			
+			private var _label:String;
+			private var _data:*;
+			private var _value:*;
+			private var _textValue:String;
+			private var _displaylabel:String;
+			
+			private var _dataChanged:Boolean;
+			
+			
+			[Bindable(event="textValueChanged")]
+			public function get textValue():String
+			{
+				return _textValue;
+			}
+			
+			public function set textValue(value:String):void
+			{
+				if(value !== _textValue) {
+					_textValue = value;
+					dispatchEvent(new Event("textValueChanged"));
+				}
+			}
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "String";
+				pp.version = "3.0.0";
+				pp.type = "string";
+				pp.contenttype = "string";
+				pp.modificationdate = new Date(2011,09,13);
+				pp.properties = [{name: "restrict", type:"string"},{name: "maxChars", type:"number"},{name: "required", type:"boolean"}];
+				return pp;
+			}
+			
+			override public function set label(value:String):void {
+				super.label = value;
+				_label = value;
+			}
+			
+			override public function get label():String {
+				return this._label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(value:String):void {
+				if(value !== _displaylabel) {
+					_displaylabel = value;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				if(!val)
+					return; 
+				_data = val;
+				
+				if(_data.hasOwnProperty("value") && (!value || value.length == 0))
+					value = _data.value;
+				
+				_dataChanged = true;
+				invalidateProperties();
+				
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			public function set value(value:*):void {
+				_value = value;
+				
+				textValue = (_value) ? _value.toString() : "";
+			}
+			
+			public function get value():* {
+				_value = text_txt.text;
+				return _value
+			}
+			
+			
+			public function validate():Object {
+				
+				if(_data && _data.hasOwnProperty("validationtype")) {
+					var required:Boolean = (_data.hasOwnProperty("required") && _data.required == "true");
+					var validators:Array = new Array();
+					
+					switch(_data.validationtype) {
+						case "url":
+							validators.push(ValidatorController.createLinkValidator(text_txt, "text", required));
+							break;
+						case "email":
+							validators.push(ValidatorController.createEmailValidator(text_txt, "text", required));
+							break;
+						case "regexp":
+							validators.push(ValidatorController.createRegExpValidator(text_txt, "text", _data.regexp, required));
+							break;
+					}
+					
+					if(Validator.validateAll(validators).length == 0) {
+						return {valid:true};
+					} else {
+						return {valid:false, reason: Validator.validateAll(validators)};
+					}
+				} 
+				return {valid:true};
+			}
+			
+			public function destroy():void {
+				data =
+				label =
+				displaylabel =
+				textValue = null;
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				if(!_dataChanged)
+					return;
+				_dataChanged = false;
+				
+				text_txt.maxChars = (_data.hasOwnProperty('maxChars')) ? _data.maxChars : null;
+				text_txt.restrict = (_data.hasOwnProperty('restrict')) ? _data.restrict : null;
+				
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+	
+	<controls:BrightTextInput
+		width="100%"
+		fieldname="{displaylabel}"
+		text="{textValue}"
+		id="text_txt" />
+	
+</mx:Module>

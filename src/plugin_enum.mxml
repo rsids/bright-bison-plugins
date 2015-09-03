@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module 
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	verticalAlign="top"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="horizontal" 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:controls="nl.bs10.bright.controls.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			import com.adobe.utils.ArrayUtil;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.events.ValidationResultEvent;
+			import mx.messaging.events.MessageEvent;
+			import mx.messaging.messages.ErrorMessage;
+			import mx.messaging.messages.IMessage;
+			import mx.rpc.events.ResultEvent;
+			import mx.validators.Validator;
+			
+			import nl.bs10.brightlib.controllers.ValidatorController;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			
+			private var _label:String;
+			private var _data:*;
+			private var _value:*;
+			private var _displaylabel:String;
+			private var _selectedValues:Array;
+			[Bindable] private var _multiple:Boolean;
+			
+			private var _dataChanged:Boolean;
+			private var _valueChanged:Boolean;
+			private var _selectedValuesChanged:Boolean;
+			private var _repeaterChanged:Boolean;
+			
+			[Bindable] private var _values:ArrayCollection;
+			
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Enumeration";
+				pp.version = "3.0.2";
+				pp.type = "enum";
+				pp.contenttype = "string";
+				pp.modificationdate = new Date(2013,0,2);
+				pp.properties = [{name:"required", type:"boolean"}, {name:"values", type:"array"}, {name:"labels", type:"array"}, {name:"multiple", type:"boolean"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				_data =
+				_value =
+				_values = null;
+				displaylabel = null;
+			}
+		
+			override public function set label(val:String):void {
+				super.label = val;
+				_label = val;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(val:String):void {
+				if(val !== _displaylabel) {
+					_displaylabel = val;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				if(!val)
+					return; 
+				_data = val;
+				_dataChanged = true;
+				invalidateProperties();
+			}
+		
+			override public function get data():Object {
+				return _data;
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				var i:int;
+				if(_dataChanged) {
+					
+					_dataChanged = false;
+					
+					if(_data.hasOwnProperty("value") && (!value || value.length == 0))
+						value = _data.value;
+					
+					if(_data.hasOwnProperty("values")) {
+						var hasLabels:Boolean = _data.hasOwnProperty("labels");
+						var arr:Array = [];
+						for(i = 0; i < _data.values.length; i++) {
+							arr.push({value: _data.values[i], label: (hasLabels) ? _data.labels[i]: _data.values[i]});
+						}
+						_values = new ArrayCollection(arr);
+					}
+					
+					
+					if(_data.hasOwnProperty("multiple")) {
+						_multiple = _data.multiple;
+					}
+				}
+				
+				if(_valueChanged) {
+					_valueChanged = false;
+					if(_value && _value != "") {
+						if(_multiple) {
+							_selectedValues = _value;
+							_selectedValuesChanged = true;
+						} else {
+							for(i = 0; i < _values.length; i++) {
+								if(_values[i].value == _value) {
+									value_cmb.selectedItem = _values[i];
+								}
+							}
+						}
+					}
+				}
+				
+				if(_selectedValuesChanged) {
+					_repeaterChanged = false;
+					_selectedValuesChanged = false;
+					var nc:uint = multiple_vb.numChildren;
+					var val:Array;
+					while(--nc > -1) {
+						var chb:CheckBox = multiple_vb.getChildAt(nc) as CheckBox;
+						chb.selected = ArrayUtil.arrayContainsValue(_selectedValues, chb.data);
+							
+					}
+				}
+			}
+			
+			public function set value(val:*):void {
+				if(val is String) {
+					try {
+						_value = JSON.decode(val);
+					} catch(ex:Error) {
+						// Old way to store objects
+						_value = val.split('|');
+					}
+				} else {
+					_value = val;
+				}
+				_valueChanged = true;
+				invalidateProperties();
+			}
+			
+			public function get value():* {
+				if(!value_cmb)
+					return _value;
+				
+				if(_multiple) {
+					var nc:uint = multiple_vb.numChildren;
+					var val:Array = [];
+					while(--nc > -1) {
+						var chb:CheckBox = multiple_vb.getChildAt(nc) as CheckBox;
+						if(chb.selected)
+							val.push(chb.data);
+					}
+					_value = JSON.encode(val);
+				} else {
+					if(!value_cmb.selectedItem)
+						return null;
+					
+					_value = value_cmb.selectedItem.value.toString();
+				}
+					
+				return _value;
+			}
+			
+			public function validate():Object {
+				
+				if(_data && _data.hasOwnProperty("validationtype")) {
+					var required:Boolean = (_data.hasOwnProperty("required") && _data.required == "true");
+					var vare:ValidationResultEvent;
+					// @todo Add support for multiple
+					if(!_multiple && value_cmb.selectedIndex == 1) {
+						var re:ResultEvent = new ResultEvent(ResultEvent.RESULT);
+						re.message = new ErrorMessage(); 
+						re.message.body = displaylabel + " is a required field";
+						return {valid:false, reason: [re]};
+					}
+				} 
+				return {valid:true};
+			}
+
+			protected function enumrepeater_creationCompleteHandler(event:FlexEvent):void
+			{
+				_repeaterChanged = true;
+				invalidateProperties();
+			}
+
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+	
+	<controls:BrightCombobox
+		width="100%"
+		visible="{!_multiple}"
+		includeInLayout="{!_multiple}"
+		dataProvider="{_values}"
+		fieldname="{displaylabel}"
+		labelField="label"
+		id="value_cmb" />
+	
+	<mx:VBox
+		width="100%"
+		id="multiple_vb"
+		visible="{_multiple}"
+		includeInLayout="{_multiple}">
+		
+		<mx:Repeater dataProvider="{_values}" id="enumrepeater" creationComplete="enumrepeater_creationCompleteHandler(event)">
+			<mx:CheckBox label="{enumrepeater.currentItem.label}" data='{enumrepeater.currentItem.value}' />
+		</mx:Repeater>
+		
+	</mx:VBox>
+	
+</mx:Module>

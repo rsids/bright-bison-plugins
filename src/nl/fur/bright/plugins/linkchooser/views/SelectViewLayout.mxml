@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SelectView
+	width="100%" 
+	height="100%" 
+	paddingLeft="5"
+	paddingRight="5"
+	xmlns="nl.fur.bright.plugins.linkchooser.views.*"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:tree="nl.flexperiments.tree.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.fur.bright.plugins.linkchooser.model.Model;
+		]]>
+	</mx:Script>
+	
+	<mx:RadioButtonGroup
+		id="link_rbg"
+		selectedValue="internal" />
+	
+	<mx:RadioButton
+		id="int_rb"
+		left="0"
+		top="0"
+		visible="{!Model.instance.internalOnly}"
+		includeInLayout="{!Model.instance.internalOnly}"
+		groupName="link_rbg"
+		value="internal"
+		label="Internal Link:" />
+	
+	<mx:Canvas
+		styleName="editorVs"
+		borderSides="top, left, bottom, right"
+		id="tree_cvs"
+		horizontalScrollPolicy="off"
+		width="100%"
+		height="100%">
+		
+		<!-- Must be inside canvas to get correct scrolling behaviour --> 
+		<tree:FlpTree
+			click="int_rb.selected = true"
+			backgroundColor="#ffffff"
+			left="0"
+			right="0"
+			height="100%"
+			verticalGap="3"
+			iconFunction="IconController.getIcon"
+			itemRenderer="nl.fur.bright.plugins.linkchooser.views.PlTreeItemRenderer"
+			dropEnabled="false"
+			dragEnabled="false"
+			itemDoubleClick="selectLink()"
+			id="int_tree"
+			labelField="page.label"
+			open="structureOpenEvent(event)"
+			dataProvider="{structure}" />
+		
+	</mx:Canvas>
+	
+	<mx:VBox
+		visible="{!Model.instance.internalOnly}"
+		includeInLayout="{!Model.instance.internalOnly}"
+		width="100%">
+	
+		<mx:RadioButton
+			id="ext_rb"
+			value="external"
+			groupName="link_rbg"
+			click="ext_txt.setFocus()"
+			label="External Link:" />
+		
+		<mx:TextInput
+			paddingLeft="20"
+			focusIn="ext_rb.selected=true"
+			text="http://"
+			id="ext_txt"
+			width="100%" />	
+		
+		<mx:RadioButton
+			id="email_rb"
+			groupName="link_rbg"
+			click="email_txt.setFocus()"
+			value="email"
+			label="E-mail address:" />
+		
+		<mx:TextInput
+			paddingLeft="20"
+			focusIn="email_rb.selected=true"
+			id="email_txt"
+			width="100%" />	
+		
+		<mx:RadioButton
+			id="file_rb"
+			groupName="link_rbg"
+			value="file"
+			label="File:" />
+		
+		<mx:HBox
+			width="100%">
+			
+			<mx:TextInput
+				editable="false"
+				focusIn="file_rb.selected=true"
+				id="file_txt"
+				width="100%" />	
+			
+			<mx:Button
+				label="Browse"
+				click="file_rb.selected=true;selectFile()" />
+		
+		</mx:HBox>
+		
+	</mx:VBox>
+</SelectView>

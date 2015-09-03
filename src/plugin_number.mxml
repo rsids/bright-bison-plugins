@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	verticalAlign="bottom"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="horizontal" xmlns:controls="nl.bs10.bright.controls.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.validators.Validator;
+			
+			import nl.bs10.brightlib.controllers.ValidatorController;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			
+			private var _label:String;
+			private var _data:*;
+			private var _dataChanged:Boolean;
+			private var _valueChanged:Boolean;
+			private var _displaylabel:String;
+			
+			[Bindable] private var _value:Number;
+			
+		
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Number";
+				pp.version = "3.0.4";
+				pp.type = "number";
+				pp.contenttype = "string";
+				pp.modificationdate = new Date(2014,00,21);
+				pp.properties = [{name: "minimum", type:"number"},{name: "maximum", type:"number"},{name: "stepSize", type:"number"},{name: "default", type:"number"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				data = 
+				value = 
+				label = 
+				displaylabel = null;
+			}
+			
+			override public function set label(val:String):void {
+				super.label = val;
+				_label = val;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(val:String):void {
+				if(val !== _displaylabel) {
+					_displaylabel = val;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				if(!val)
+					return; 
+				
+				_data = val;
+				if(_data.hasOwnProperty("value") && (!_value || isNaN(Number(_value))))
+					value = _data.value;
+				
+				_dataChanged = true;
+				invalidateProperties();				
+				
+			}
+		
+			override public function get data():Object {
+				return _data;
+			}
+			
+			[Bindable(event='valChanged')]
+			public function set value(val:*):void {
+				if(val !== null) {
+					_value = val;
+					numberValue = Number(_value);
+					_valueChanged = true;
+					dispatchEvent(new Event('valChanged'));
+				}
+			}
+			
+			public function get value():* {
+				_value = number_ns.value;
+				return _value;
+			}
+			
+			private var _numberValue:Number;
+			private var _numberValueChanged:Boolean;
+			
+			public function get numberValue():Number {
+				return _numberValue;
+			}
+			
+			[Bindable(event="numberValueChanged")]
+			public function set numberValue(val:Number):void	{
+				if(_numberValue != val) {
+					_numberValue = val;
+					_numberValueChanged = true;
+					invalidateProperties();
+					
+				}
+				dispatchEvent(new Event('numberValueChanged'));
+			}
+			
+			public function validate():Object {
+				
+				if(_data && (_data.hasOwnProperty("minimum") || _data.hasOwnProperty("required") || _data.hasOwnProperty("maximum"))) {
+					var required:Boolean = (_data.hasOwnProperty("required") && _data.required == "true");
+					var validators:Array = new Array();
+					validators.push(ValidatorController.createNumberValidator(number_ns, "value", required));
+					var result:Array = Validator.validateAll(validators);
+					
+					if(result.length == 0) {
+						return {valid:true};
+					} else {
+						return {valid:false, reason:result};
+					}
+				} 
+				return {valid:true};
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				if(!_dataChanged)
+					return;
+				_dataChanged = false;
+				
+				if(_data.hasOwnProperty('default') && isNaN(Number(_value))) {
+					value = Number(_data['default']);
+				}
+				
+				if(_valueChanged) {
+					_valueChanged = false;
+				}
+				
+				number_ns.minimum = (_data.hasOwnProperty('minimum')) ? Number(_data.minimum) : Number.NEGATIVE_INFINITY;
+				number_ns.maximum = (_data.hasOwnProperty('maximum')) ? Number(_data.maximum) : Number.POSITIVE_INFINITY;
+				number_ns.stepSize = (_data.hasOwnProperty('stepSize')) ? Number(_data.stepSize) : 1;
+			}
+			
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+		
+	<controls:BrightNumericStepper
+		fieldname="{displaylabel}"
+		width="300"
+		value="{numberValue}"
+		id="number_ns" />
+	
+	
+</mx:Module>

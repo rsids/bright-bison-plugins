@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	layout="horizontal" 
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	width="100%">
+	
+	<mx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			import com.adobe.utils.ArrayUtil;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.CheckBox;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			
+			import nl.bs10.brightlib.objects.PluginProperties;
+			import nl.fur.vein.events.VeinDispatcher;
+			import nl.fur.vein.events.VeinEvent;
+			
+			private var _label:String;
+			private var _displaylabel:String;
+			private var _data:Object;
+			private var _value:Object;
+			private var _dataChanged:Boolean;
+			
+			private var _multiple:Boolean;
+			private var _multipleChanged:Boolean;
+			
+			private var _usergroups:ArrayCollection;
+			private var _usergroupsChanged:Boolean;
+			
+			private var _initialized:Boolean;
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "List of usergroups";
+				pp.version = "2.0.3";
+				pp.type = "usergroup_chooser";
+				pp.contenttype = "json";
+				pp.modificationdate = new Date(2014,01,25);
+				pp.properties = [{name: "multiple", type:"boolean"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				usergroups = null;
+				data =
+				label =
+				displaylabel = null;
+				VeinDispatcher.instance.removeEventListener('modelRequestResult', _onModelRequestResult);
+			}
+			
+			public function validate():Object {
+				return {valid:true};
+			}
+			
+			override protected function createChildren():void {
+				super.createChildren();
+				VeinDispatcher.instance.removeEventListener('modelRequestResult', _onModelRequestResult);
+				VeinDispatcher.instance.addEventListener('modelRequestResult', _onModelRequestResult, false, 0, true);
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				if(_dataChanged) {
+					_dataChanged = false;
+					
+					VeinDispatcher.instance.dispatch('requestModelValue', 'userVO.usergroups');
+					
+					if(_data.hasOwnProperty("multiple")) {
+						multiple = _data.multiple as Boolean;
+					}
+				}
+				
+				if(_usergroupsChanged) {
+					_usergroupsChanged = false;
+					ug_vbox1.removeAllChildren();
+					ug_vbox2.removeAllChildren();
+					if(usergroups) {
+						if(multiple) {
+							var ng:int = Math.floor(usergroups.length / 2);
+							var i:int = 0;
+							var box:VBox = ug_vbox1;
+							var chb:CheckBox;
+							if(!(_value is Array)) {
+								_value = [];
+							}
+							for each(var group:Object in usergroups) {
+								chb = new CheckBox();
+								chb.label = group.groupname;
+								chb.data = group.groupId;
+								chb.addEventListener(Event.CHANGE, function(event:Event):void {
+									if(!(_value is Array)) {
+										_value = [];
+									}
+									if(event.currentTarget.selected) {
+										_value.push(event.currentTarget.data);
+									} else {
+										var vl:uint = value.length;
+										while(--vl > -1) {
+											if(_value[vl] == event.currentTarget.data) {
+												_value.splice(vl,1);
+											}
+											
+										}
+									}
+								}, false,0,true);
+								
+								chb.selected = ArrayUtil.arrayContainsValue(_value as Array, group.groupId);
+								box.addChild(chb);
+								if(i++ == ng) {
+									box = ug_vbox2;
+								}
+							}
+							chb = new CheckBox();
+							chb.setStyle("paddingTop", 20);
+							chb.label = 'Select all';
+							chb.addEventListener(Event.CHANGE, function(event:Event):void {
+								var nc:int = ug_vbox1.numChildren;
+								var val:Array = [];
+								while(--nc > -1) {
+									ug_vbox1.getChildAt(nc)['selected'] = event.currentTarget.selected;
+									val.push(ug_vbox1.getChildAt(nc)['data']);
+								}
+								nc = ug_vbox2.numChildren;
+								while(--nc > -1) {
+									ug_vbox2.getChildAt(nc)['selected'] = event.currentTarget.selected;
+									val.push(ug_vbox2.getChildAt(nc)['data']);
+								}
+								if(event.currentTarget.selected) {
+									_value = val;
+								} else {
+									_value = [];
+								}
+							}, false,0,true);
+							ug_vbox1.addChild(chb);
+						}
+						// Set selected value;
+						if(!multiple) {
+							usergroup_cmb.selectedIndex = -1;
+							if(_value != null) {
+								for each(var ug:Object in usergroups) {
+									if(ug.groupId == parseInt(_value.groupId)) {
+										usergroup_cmb.selectedItem = ug;
+									}
+								}
+							}
+						}
+					}
+				}
+				
+				
+			}
+			
+			protected function usergroup_cmb_changeHandler(event:ListEvent):void {
+				_value = null;
+				if(usergroup_cmb.selectedItem) {
+					_value = {groupId:usergroup_cmb.selectedItem.groupId};
+				}
+			}
+			
+			private function _onModelRequestResult(event:VeinEvent):void {
+				if(event.data.modelname == 'userVO.usergroups')
+					usergroups = event.data.modelvalue as ArrayCollection;
+			}
+			
+			override public function set label(val:String):void {
+				super.label = val;
+				_label = val;
+			}
+			
+			override public function get label():String {
+				return this._label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(val:String):void {
+				if(val !== _displaylabel) {
+					_displaylabel = val;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				if(!val)
+					return; 
+				_data = val;
+				
+				
+				
+				_dataChanged = true;
+				invalidateProperties();
+				
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			
+			[Bindable(event="multipleChanged")]
+			public function set multiple(val:Boolean):void {
+				if(val !== _multiple) {
+					_multiple = val;
+					_multipleChanged = true;
+					invalidateProperties();
+					dispatchEvent(new Event("multipleChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the multiple property
+			 **/
+			public function get multiple():Boolean {
+				return _multiple;
+			}
+			
+			
+			[Bindable(event="usergroupsChanged")]
+			public function set usergroups(val:ArrayCollection):void {
+				if(val !== _usergroups) {
+					_usergroups = val;
+					_usergroupsChanged = true;
+					invalidateProperties();
+					dispatchEvent(new Event("usergroupsChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the usergroups property
+			 **/
+			public function get usergroups():ArrayCollection {
+				return _usergroups;
+			}
+			
+			public function set value(val:*):void {
+				if(val is String) {
+					try {
+						_value = JSON.decode(val);
+					} catch(ex:Error) {/*Swallow it*/}
+				} else {
+					
+					_value = val;
+				}
+			}
+			
+			public function get value():* {
+				return JSON.encode(_value);
+			}
+
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+	
+	<mx:ComboBox
+		id="usergroup_cmb"
+		change="usergroup_cmb_changeHandler(event)"
+		labelField="groupname"
+		visible="{!multiple}"
+		includeInLayout="{!multiple}"
+		dataProvider="{usergroups}"	/>
+	
+	
+	<mx:HBox
+		visible="{multiple}"
+		includeInLayout="{multiple}"
+		id="ug_hbox"
+		width="100%"
+		height="100%">
+		
+		<mx:VBox
+			width="100%"
+			height="100%"
+			id="ug_vbox1">
+			
+		</mx:VBox>
+		
+		<mx:VBox
+			width="100%"
+			height="100%"
+			id="ug_vbox2">
+			
+		</mx:VBox>
+	</mx:HBox>
+		
+	
+</mx:Module>

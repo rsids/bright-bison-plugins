@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<controllers:AppController
+	layout="absolute"
+	width="100%"
+	height="100%"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:controllers="nl.bs10.gmaps.controllers.*" 
+	xmlns:maps="com.google.maps.*" 
+	xmlns:components="nl.bs10.brightlib.components.*" 
+	xmlns:views="nl.bs10.gmaps.views.*" xmlns:views1="nl.fur.bright.maps.views.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import nl.bs10.brightlib.controllers.IconController;
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		text="{displaylabel}"
+		visible="{pluginmode}"
+		includeInLayout="{pluginmode}"
+		width="150" />
+	
+	<mx:Canvas
+		left="{pluginmode ? 159 : 0}"
+		right="0"
+		height="100%"
+		borderColor='#929292'
+		borderStyle='solid'
+		borderThickness='1'
+		borderSides='bottom,left,right'
+		id="mapsHolder">
+		
+	</mx:Canvas>
+	
+	<components:IconBox
+		x="{pluginmode ? 159 : 0}"
+		y="0"
+		borderSides="top,left,right"
+		id="buttons_hb">
+		
+		<components:GrayImageButton
+			toolTip="Zoom out"
+			click="zoom(-1)"
+			source="{IconController.getGray('zoomout')}" />
+		
+		<components:GrayImageButton
+			toolTip="Zoom in"
+			click="zoom(1)"
+			source="{IconController.getGray('zoomin')}" />
+		
+		<mx:Spacer
+			width="100%" />
+		
+		<components:GrayImageButton
+			toolTip="Layers"
+			mode="toggle"
+			click="editLayers()"
+			id="layers_btn"
+			visible="{pluginmode}"
+			source="{IconController.getGray('layers')}" />
+		
+		<components:GrayImageButton
+			toolTip="Map settings"
+			id="settings_btn"
+			mode="toggle"
+			click="editSettings()"
+			visible="{pluginmode}"
+			source="{IconController.getGray('cog')}" />
+		
+		<components:GrayImageButton
+			toolTip="Add Marker"
+			click="addMarker()"
+			enabled="{selectedlayer != null}"
+			visible="{!pluginmode}"
+			source="{IconController.getGray('marker')}" />
+		
+		<components:GrayImageButton
+			toolTip="Add Line"
+			enabled="{selectedlayer != null}"
+			click="addLine()"
+			visible="{!pluginmode}"
+			source="{IconController.getGray('line')}" />
+		
+		<components:GrayImageButton
+			toolTip="Add Shape"
+			enabled="{selectedlayer != null}"
+			click="addShape()"
+			visible="{!pluginmode}"
+			source="{IconController.getGray('shape')}" />
+	</components:IconBox>
+
+	<mx:Canvas
+		visible="false"
+		includeInLayout="false"
+		mouseEnabled="false"
+		enabled="false"
+		mouseChildren="false"
+		resize="renderBorders(event)"
+		id="center_cvs"
+		left="180"
+		right="20"
+		bottom="10"
+		top="53"
+		backgroundAlpha=".08"
+		backgroundColor="#ffffff">
+		
+	</mx:Canvas>
+	
+	<views1:MapSettingsLayout
+		visible="false"
+		includeInLayout="false"
+		right="10"
+		bottom="10"
+		top="{buttons_hb.height + 10}"
+		id="mapSettings" />
+	
+	<views1:LayersViewLayout
+		visible="false"
+		includeInLayout="false"
+		right="10"
+		bottom="10"
+		top="{buttons_hb.height + 10}"
+		id="layersView" />	
+	
+</controllers:AppController>

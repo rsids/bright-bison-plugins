@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	verticalAlign="bottom"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="horizontal" xmlns:controls="nl.bs10.bright.controls.*" xmlns:components="nl.bs10.brightlib.components.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import nl.bs10.brightlib.objects.PluginProperties;
+			import nl.bs10.brightlib.utils.Formatter;
+			private var _label:String;
+			private var _data:*;
+			private var _value:Number;
+			
+			[Bindable] private var _date:Date;
+			
+			
+			private var _saveasdate:Boolean;
+			private var _displaylabel:String;
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Date";
+				pp.version = "3.0.6";
+				pp.modificationdate = new Date(2012,0,2);
+				pp.type = "date";
+				pp.contenttype = "string";
+				pp.properties = [{name:'saveasdate', type:'boolean'}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				_data = null;
+				displaylabel = null;
+			}
+			
+			override public function set label(val:String):void {
+				super.label = val;
+				_label = val;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(val:String):void {
+				if(val !== _displaylabel) {
+					_displaylabel = val;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				if(!val) 
+					return;
+				_data = val;
+				
+				
+				if(_data.hasOwnProperty("value") && (!value || value == 0))
+					value = _data.value;
+				if(_data.hasOwnProperty('saveasdate')) {
+					_saveasdate = _data.saveasdate;
+				}
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			public function set value(val:*):void {
+				_value = Number(val);
+				if(_value > 0) {
+					_date = new Date();
+					_date.setTime(_value * 1000);
+				} else if(_saveasdate) {
+					try {
+						_date = new Date(val);
+						
+					} catch(ex:Error) {
+						_date = null;
+					}
+				} else {
+					_date = null;
+					
+				}
+			}
+			
+			public function get value():* {
+				_value = (date_df.selectedDate) ? date_df.selectedDate.getTime() / 1000 : 0;
+				if(_saveasdate) {
+					return (date_df.selectedDate) ? date_df.selectedDate.toLocaleString() : null;
+				}
+				
+				return _value; 
+			}
+			
+			public function validate():Object {
+				return {valid:true};
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+		
+	<components:BrightDateField
+		selectedDate="{_date}"
+		width="150"
+		fieldname="{displaylabel}"
+		yearNavigationEnabled="true"
+		id="date_df" />
+		
+</mx:Module>

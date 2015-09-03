@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module
+	
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	verticalScrollPolicy="off"
+	width="100%"
+	layout="absolute" 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	xmlns:controls="nl.bs10.bright.controls.*" 
+	xmlns:components="nl.bs10.brightlib.components.*">
+	<mx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			
+			import mx.controls.Alert;
+			
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.bs10.brightlib.events.FileExplorerEvent;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			import nl.flexperiments.display.Transformations;
+			
+			private var _label:String;
+			private var _data:Object;
+			private var _value:*;
+			private var _showThumbnail:Boolean;
+			private var _showCaption:Boolean;
+			private var _showLink:Boolean;
+			private var _showLinkTarget:Boolean;
+			private var _description:String;
+			private var _caption:String;
+			private var _filter:Array = new Array();
+			
+			[Bindable] private var _thumb:*;
+			[Bindable] private var _height:int = 80;
+			
+			private var _internal_path:String;
+			private var _displaylabel:String;
+			
+			private var _dataChanged:Boolean;
+			private var _valueChanged:Boolean;
+			private var _pathChanged:Boolean;
+			
+			
+			private var _minwidth:Number;
+			private var _minheight:Number;
+			private var _maxwidth:Number;
+			private var _maxheight:Number;
+			
+			private var _setByVal:Boolean;
+			private var _orientation:String = '';
+
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "File with description";
+				pp.version = "4.0.1";
+				pp.modificationdate = new Date(2012,06,25);
+				pp.type = "advanced_file";
+				pp.contenttype = "json";
+				pp.properties = [	{name:"required", type:"boolean"}, 
+									{name:"filter", type:"array"}, 
+									{name:"displayAsThumb", type:"boolean"}, 
+									{name:"showCaption", type:"boolean"},
+									{name: "minwidth", type:"number"},
+									{name: "minheight", type:"number"},
+									{name: "maxwidth", type:"number"},
+									{name: "maxheight", type:"number"},
+									{name: "orientation", type:"enum", values:["landscape","portrait"]},
+									/*, 
+									{name:"showLink", type:"boolean"}, 
+									{name:"showLinkTarget", type:"boolean"}*/
+				];
+				return pp;
+			}
+			
+			public function destroy():void {
+				
+				_thumb = null;
+			}
+		
+			override public function set label(val:String):void {
+				super.label = val;
+				_label = val;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable(event="captionChanged")]
+			public function set caption(val:String):void {
+				if(val !== _caption) {
+					_caption = val;
+					dispatchEvent(new Event("captionChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the caption property
+			 **/
+			public function get caption():String {
+				return _caption;
+			}
+			
+			[Bindable(event="descriptionChanged")]
+			public function get description():String {
+				return _description;
+			}
+			
+			public function set description(val:String):void {
+				if(val !== _description) {
+					_description = val;
+					dispatchEvent(new Event("descriptionChanged"));
+				}
+			}
+			
+			[Bindable(event="showThumbnailChanged")]
+			public function get showThumbnail():Boolean {
+				return _showThumbnail;
+			}
+			
+			public function set showThumbnail(val:Boolean):void {
+				if(val !== _showThumbnail) {
+					_showThumbnail = val;
+					dispatchEvent(new Event("showThumbnailChanged"));
+				}
+			}
+			
+			[Bindable(event="showCaptionChanged")]
+			public function set showCaption(val:Boolean):void {
+				if(val !== _showCaption) {
+					_showCaption = val;
+					dispatchEvent(new Event("showCaptionChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the showCaption property
+			 **/
+			public function get showCaption():Boolean {
+				return _showCaption;
+			}
+			
+			
+			[Bindable(event="showLinkChanged")]
+			public function set showLink(val:Boolean):void {
+				if(val !== _showLink) {
+					_showLink = val;
+					dispatchEvent(new Event("showLinkChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the showLink property
+			 **/
+			public function get showLink():Boolean {
+				return _showLink;
+			}
+			
+			
+			[Bindable(event="showLinkTargetChanged")]
+			public function set showLinkTarget(val:Boolean):void {
+				if(val !== _showLinkTarget) {
+					_showLinkTarget = val;
+					dispatchEvent(new Event("showLinkTargetChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the showLinkTarget property
+			 **/
+			public function get showLinkTarget():Boolean {
+				return _showLinkTarget;
+			}
+			
+			[Bindable]
+			public function set displaylabel(val:String):void {
+				_displaylabel = val;
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				
+				if(!val) 
+					return;
+				
+				_data = val;
+				
+				_dataChanged = true;
+				invalidateProperties();
+					
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+				
+			public function set value(fnval:*):void {
+				// Prevent nullpointer exception 
+				var val:Object = {};
+				if(fnval && (fnval.hasOwnProperty("path") || fnval.hasOwnProperty("description"))) {
+					val = fnval;
+				} else {
+					try {
+						if(fnval is String)
+							val = JSON.decode(fnval.toString());
+					} catch(ex:Error) {/*Swallow it*/}
+				}
+				
+				_value = val;
+				_valueChanged = true;
+				invalidateProperties();
+			}
+			
+			public function get value():* {
+					
+				if(!file_txt || !description_txt)
+					return null;
+				_value = {};
+				_value.path = _path;
+				_value.description = description_txt.text;
+				
+				if(showCaption)
+					_value.caption = caption_txt.text;
+				
+				if(showLink)
+					_value.link = 'http://www.wewantfur.com';
+
+				if(showLinkTarget)
+					_value.target = '_blank';
+				
+				return JSON.encode(_value); 
+			}
+			
+			public function validate():Object {
+				if(_data.hasOwnProperty("required") && (!_path || _path == "")) {
+					return {valid:false, reasons:["The field '" + displaylabel + "' is required"]};
+				}
+				return {valid:true};
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				
+				if(_dataChanged) {
+					_dataChanged = false;
+					_setUnload();
+					_height = 80;
+				
+					if(_data.hasOwnProperty("value") && !_value)
+						value = _data.value;
+						
+					_filter = new Array();
+					if(_data.hasOwnProperty("filter")) {
+						_filter = _data.filter;
+					}
+					
+					
+					if(_data.hasOwnProperty("minwidth")) _minwidth = Number(data.minwidth);
+					if(_data.hasOwnProperty("maxwidth")) _maxwidth = Number(data.maxwidth);
+					if(_data.hasOwnProperty("minheight")) _minheight = Number(data.minheight);
+					if(_data.hasOwnProperty("maxheight")) _maxheight = Number(data.maxheight);
+					if(_data.hasOwnProperty("orientation")) _orientation = data.orientation;
+					
+					
+					if(_data.hasOwnProperty("displayAsThumb")) {
+						showThumbnail = _checkBoolean(_data.displayAsThumb);	
+					}
+					
+					if(_data.hasOwnProperty("showCaption")) {
+						showCaption = _checkBoolean(_data.showCaption);	
+						if(showCaption)
+							_height += 40;
+					}
+					
+					if(_data.hasOwnProperty("showLink")) {
+						showLink = _checkBoolean(_data.showLink);	
+						if(showLink)
+							_height += 40;
+					}
+					
+					if(_data.hasOwnProperty("showLinkTarget"))
+						showLinkTarget = _checkBoolean(_data.showLinkTarget) && showLink;	
+						if(showLinkTarget)
+							_height += 40;
+					}
+				
+				if(_valueChanged) {
+					_valueChanged = false;
+					_thumb = IconController.getGray('noimage');
+					if(_value) {
+						if(_value.hasOwnProperty("description"))
+							description = _value.description;
+						if(_value.hasOwnProperty("caption"))
+							caption = _value.caption;
+						
+						if(_value.hasOwnProperty("path")) {
+							_setByVal = true;
+							_path = _value.path;
+						}
+					}
+				}
+				
+				if(_pathChanged) {
+					_pathChanged = false;
+					_setUnload();
+					if(_path != "") {
+						var ldr:Loader = new Loader();
+						ldr.load(new URLRequest(parentApplication.getModelValue('applicationVO.config.filesettings.fileurl') + _path));
+						ldr.contentLoaderInfo.addEventListener(Event.COMPLETE, _loadComplete, false, 0, true);
+						ldr.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, _setUnload, false, 0, true);
+						ldr.contentLoaderInfo.addEventListener(HTTPStatusEvent.HTTP_STATUS, function():void{}, false, 0, true);
+					}
+				}
+			}
+			
+			private function _checkBoolean(bool:*):Boolean {
+				return (bool == "true" || bool == "1" || bool == 1 || bool == true);
+			}
+			
+			private function _loadComplete(event:Event):void {
+				
+				var ldr:LoaderInfo = event.currentTarget as LoaderInfo;
+				var errors:Array = [];
+				if(!isNaN(_minwidth)) {
+					if(ldr.content.width < _minwidth) {
+						// Image does not meet specified width
+						errors.push("The selected image is too small, the minimum width is " + _minwidth + "px\nThe selected image has a width of "+ldr.content.width + "px");
+
+					}
+				}
+				if(!isNaN(_minheight)) {
+					if(ldr.content.height < _minheight) {
+						// Image does not meet specified width
+						errors.push("The selected image is too small, the minimum height is " + _minheight + "px\nThe selected image has a height of "+ldr.content.height + "px");
+
+					}
+				}
+				if(!isNaN(_maxwidth)) {
+					if(ldr.content.width > _maxwidth) {
+						// Image does not meet specified width
+						errors.push("The selected image is too large, the maximum width is " + _maxwidth + "px\nThe selected image has a width of "+ldr.content.width + "px");
+
+					}
+				}
+				if(!isNaN(_maxheight)) {
+					if(ldr.content.height > _maxheight) {
+						// Image does not meet specified width
+						errors.push("The selected image is too large, the maximum width is " + _maxheight + "px\nThe selected image has a width of "+ldr.content.height + "px");
+
+					}
+				}
+				
+				if(_orientation != '') {
+					var imgorientation:String = ldr.content.height < ldr.content.width ? 'landscape':'portrait';
+					if(imgorientation != _orientation) {
+						errors.push("The selected image has an orientation of " + imgorientation + " while a " +_orientation + " image is required");
+
+					}
+				}
+				if(errors.length > 0) {
+					if(_setByVal) {
+						warning_img.visible = true;
+						warning_img.includeInLayout = true;
+						toolTip = errors.join("\n");
+						setStyle('backgroundColor', 0xFFFFAD);
+					} else {
+						Alert.show(errors.join("\n"));
+						_path = '';
+						_setUnload();
+						return;
+					}
+				}
+				
+				var bmd:BitmapData = new BitmapData(100,100, true, 0x000000);
+				var m:Matrix = Transformations.getScaleMatrix(ldr.content, 100,100, false);
+				bmd.draw(ldr.content, m, null, null, null, true);
+				_thumb = new Bitmap(bmd);
+				_thumb.smoothing = true;
+				_thumb.pixelSnapping = 'never';
+				thumb_img.source = _thumb;
+			}
+			
+			private function _openFileChooser():void {
+				dispatchEvent(new FileExplorerEvent(FileExplorerEvent.OPENFILEEXPLOREREVENT, _chosenFileCallback, false, _filter));
+			}
+			
+			private function _openLinkChooser():void {
+				dispatchEvent(new FileExplorerEvent(FileExplorerEvent.OPENFILEEXPLOREREVENT, _chosenFileCallback, false, _filter));
+			}
+			
+			private function _chosenFileCallback(fnvalue:Object):void {
+				setStyle('backgroundColor', null);
+				
+				warning_img.visible = false;
+				warning_img.includeInLayout = false;
+				_setByVal = false;
+				_path = fnvalue.path + fnvalue.filename;
+			}
+			
+			private function set _path(val:String):void {
+				if(val !== _internal_path) {
+					_internal_path = val;
+					_pathChanged = true;
+					invalidateProperties();
+					dispatchEvent(new Event("pathChanged"));
+				}
+			}
+			
+			[Bindable(event="pathChanged")]
+			private function get _path():String {
+				return _internal_path;
+			}
+			
+			private function _setUnload(event:* = null):void {
+				_thumb = IconController.getGray('noimage');
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+		
+	<mx:Image
+		width="100"
+		height="100"
+		x="158"
+		id="thumb_img"
+		toolTip="Click to reset"
+		click="_path='';_setUnload()"
+		styleName="listBox"
+		source="{_thumb}"
+		visible="{showThumbnail}"
+		includeInLayout="{showThumbnail}"
+		scaleContent="false" />
+	
+	<mx:VBox
+		x="{(showThumbnail) ? 266 : 158}" 
+		width="100%"
+		horizontalScrollPolicy="off"
+		verticalScrollPolicy="off">
+		
+		<mx:HBox
+			horizontalScrollPolicy="off"
+			verticalScrollPolicy="off"
+			width="100%">
+			
+			<components:LabeledInput
+				label="File"
+				editable="false"
+				click="_path=''"
+				labelWidth="70"
+				width="100%"
+				text="{_path.toString()}"  
+				id="file_txt" />
+			
+			<mx:Button
+				label="Browse..."
+				click="_openFileChooser()"/>
+			
+			<mx:Image 
+				id="warning_img"
+				visible="false"
+				includeInLayout="false"
+				source="{IconController.getIcon('error')}"/>
+			
+		</mx:HBox>
+		
+			
+		<components:LabeledInput
+			label="Description"
+			labelWidth="70"
+			width="100%"
+			text="{description}"
+			id="description_txt" />	
+		
+		<components:LabeledInput
+			label="Caption"
+			width="100%"
+			text="{caption}"
+			visible="{showCaption}"
+			includeInLayout="{showCaption}"
+			labelWidth="70"
+			id="caption_txt" />	
+		
+		<mx:HBox
+			visible="{showLink}"
+			includeInLayout="{showLink}"
+			horizontalScrollPolicy="off"
+			verticalScrollPolicy="off"
+			width="100%">
+			
+			<components:LabeledInput
+				label="Link"
+				width="100%"
+				labelWidth="70"
+				id="link_txt" />
+			
+			<mx:Button
+				label="Browse..."
+				click="_openLinkChooser()"/>
+			
+		</mx:HBox>
+		
+	</mx:VBox>
+	
+</mx:Module>

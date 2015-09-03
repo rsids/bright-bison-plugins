@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="absolute" 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:controls="nl.bs10.bright.controls.*" 
+	xmlns:components="nl.bs10.brightlib.components.*">
+	<mx:Script>
+		<![CDATA[
+		
+			import com.adobe.serialization.json.JSON;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.Application;
+			
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.bs10.brightlib.events.BrightEvent;
+			import nl.bs10.brightlib.objects.Page;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			import nl.flexperiments.display.Transformations;
+			
+			private var _label:String;
+			private var _data:Object;
+			private var _value:*;
+			private var _description:String;
+			private var _allowedTemplates:Array = new Array();	
+			private var _internalOnly:Boolean;
+			
+			private var _displaylabel:String;
+			
+			private var _dataChanged:Boolean;
+			private var _valueChanged:Boolean;
+			private var _linksChanged:Boolean;
+			
+			
+			[Bindable] private var _links:ArrayCollection = new ArrayCollection();
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "List of links";
+				pp.version = "1.0.0";
+				pp.type = "linklist";
+				pp.contenttype = "array";
+				pp.modificationdate = new Date(2011,09,13);
+				pp.properties = [{name: "internalOnly", type:"boolean"}, {name:"allowedTemplates", type:"array"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				
+			}
+			
+			override public function set label(value:String):void {
+				super.label = value;
+				_label = value;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable]
+			public function set displaylabel(value:String):void {
+				_displaylabel = value;
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				
+				if(!val) 
+					return;
+				
+				_data = val;
+				_dataChanged = true;
+				invalidateProperties();
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			public function set value(val:*):void {
+				if(!val)
+					return;
+				_value = val;
+				_valueChanged = true;
+				invalidateProperties();
+			}
+			
+			public function get value():* {
+				return _value; 
+			}
+			
+			public function validate():Object {
+				return {valid:true};
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				
+				if(_dataChanged) {
+					_dataChanged = false;
+					
+					if(_data.hasOwnProperty("value") && !_value)
+						value = _data.value;
+					
+					_allowedTemplates = new Array();
+					if(_data.hasOwnProperty("allowedTemplates")) {
+						_allowedTemplates = _data.allowedTemplates;
+					}
+					
+					_internalOnly = (_data.hasOwnProperty('internalOnly') && _data.internalOnly == true);	
+				}
+				
+				if(_valueChanged) {
+					_valueChanged = false;
+					 if(_value) {
+						// Fetch values!
+						_links = new ArrayCollection(_value as Array);
+					} 
+				}
+				
+				 if(_linksChanged) {
+					_linksChanged = false;
+					_value = _links.source;
+				} 
+			
+			}
+			
+			private function _addLink():void {
+				dispatchEvent(new BrightEvent(BrightEvent.DATAEVENT, {type:"openLinkChooser", 
+					callback:_chosenLinkCallback, 
+					internalOnly: _internalOnly,
+					showAdvanced: false,
+					allowedTemplates: _allowedTemplates}));
+			}
+			
+			private function _chosenLinkCallback(fnvalue:String):void {
+				//value = fnvalue;
+				_links.addItem(fnvalue);
+				_linksChanged = true;
+				invalidateProperties();
+			}
+			
+			private function _moveLink(dir:int):void {
+				var index:int = link_lst.selectedIndex;
+				var el:Object = _links.removeItemAt(link_lst.selectedIndex);
+				if(dir == 1) {
+					index++;
+					index = Math.min(_links.length, index);
+				} else {
+					index--;
+					index = Math.max(0, index);
+				}
+				_links.addItemAt(el, index);
+				link_lst.selectedItem = el;
+				_linksChanged = true;
+				invalidateProperties();
+			}
+			
+			private function _deleteLink():void {
+				_links.removeItemAt(link_lst.selectedIndex);
+				_links.refresh();
+				_linksChanged = true;
+				invalidateProperties();
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+	
+	<mx:List
+		left="158"
+		right="{button_hb.width}"
+		itemRenderer="nl.fur.bright.linklist.renderers.LinkListRenderer"
+		y="0"
+		dataProvider="{_links}"
+		id="link_lst"
+		height="150" />
+		
+	<mx:HBox
+		right="0"
+		id="button_hb">
+		
+		<components:GrayImageButton
+			source="{IconController.getGray('add')}"
+			toolTip="Add link"
+			click="_addLink()" />
+		
+		<components:GrayImageButton
+			source="{IconController.DOWNARROW}"
+			toolTip="Move link down"
+			visible="{_links.length &gt; 1}"
+			includeInLayout="{_links.length &gt; 1}"
+			click="_moveLink(1)" />
+		
+		<components:GrayImageButton
+			source="{IconController.UPARROW}"
+			toolTip="Move link up"
+			visible="{_links.length &gt; 1}"
+			includeInLayout="{_links.length &gt; 1}"
+			click="_moveLink(-1)" />
+		
+		<components:GrayImageButton
+			source="{IconController.getIcon('delete')}"
+			toolTip="Remove link"
+			visible="{_links.length != 0}"
+			enabled="{link_lst.selectedItem}"
+			includeInLayout="{_links.length != 0}"
+			click="_deleteLink()" />
+		
+	</mx:HBox>
+
+</mx:Module>

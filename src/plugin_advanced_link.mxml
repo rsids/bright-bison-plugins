@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	verticalScrollPolicy="off"
+	width="100%"
+	layout="absolute" 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	xmlns:controls="nl.bs10.bright.controls.*">
+
+	
+	<mx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.bs10.brightlib.events.BrightEvent;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			
+			private var _label:String;
+			private var _data:Object;
+			private var _value:*;
+			private var _path:String;
+			private var _description:String;
+			
+			private var _displaypath:String;
+			private var _displaylabel:String;
+			
+			
+			private var _intisloading:Boolean = false;
+			private var _showAdvanced:Boolean = false;
+			private var _internalOnly:Boolean = false;
+			private var _dataChanged:Boolean;
+			private var _valueChanged:Boolean;
+			private var _pathChanged:Boolean;
+		
+			[Bindable(event="descriptionChanged")]
+			public function get description():String {
+				return _description;
+			}
+
+			public function set description(value:String):void {
+				if(value !== _description) {
+					_description = value;
+					dispatchEvent(new Event("descriptionChanged"));
+				}
+			}
+
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Link with title";
+				pp.version = "2.0.0";
+				pp.modificationdate = new Date(2011,09,13);
+				pp.type = "advanced_link";
+				pp.contenttype = "json";
+				pp.properties = [{name:"required", type:"boolean"}, {name:"internalOnly", type:"boolean"}, {name:"showAdvanced", type:"boolean"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				path =
+				label = null;
+				value = 
+				data = null;
+			}
+		
+			override public function set label(value:String):void {
+				super.label = value;
+				_label = value;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable]
+			public function set displaylabel(value:String):void {
+				_displaylabel = value;
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				
+				if(!val) 
+					return;
+				
+				_data = val;
+				_dataChanged = true;
+				invalidateProperties();
+					
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			public function set path(val:String):void {
+				if(val !== _path) {
+					_path = val;
+					displaypath = val;
+					dispatchEvent(new Event('pathChanged'));
+				}
+				
+			}
+			
+			public function get path():String {
+				return _path;
+			}
+			
+			[Bindable(event='displaypathChanged')]
+			public function set displaypath(val:String):void {
+				if(val !== _displaypath) {
+					_displaypath = val;
+					_isloading = false;
+					
+					if(_displaypath && _displaypath.indexOf("/index.php") == 0) {
+						// Fetch realurl
+						_isloading = true;
+						var pa:Array = _displaypath.split('=');
+						dispatchEvent(new BrightEvent(BrightEvent.DATAEVENT, {type:"getPathForTid", callback:setRealPath, tid:pa[1]}));
+					}
+					dispatchEvent(new Event('displaypathChanged'));
+				}
+				
+			}
+			
+			public function get displaypath():String {
+				return _displaypath;
+			}
+			
+			public function setRealPath(realpath:String):void {
+				displaypath = realpath;
+			}
+				
+			public function set value(fnval:*):void {
+				
+				// Prevent nullpointer exception
+				var val:Object = {};
+				if(fnval && (fnval.hasOwnProperty("path") || fnval.hasOwnProperty("description"))) {
+					val = fnval;
+				} else {
+					try {
+						if(fnval is String)
+							val = JSON.decode(fnval.toString());
+					} catch(ex:Error) {/*Swallow it*/}
+				}
+				
+				_value = val;
+				_valueChanged = true;
+				invalidateProperties();
+			}
+			
+			public function get value():* {
+					
+				if(!file_txt || !description_txt)
+					return null;
+				_value = {};
+				
+				if(path) {
+					_value.path = path;
+				}
+				_value.description = description_txt.text;
+				
+				
+				return JSON.encode(_value); 
+			}
+			
+			public function validate():Object {
+				if(_data.hasOwnProperty("required") && (!_path || _path == "")) {
+					return {valid:false, reasons:["The field '" + displaylabel + "' is required"]};
+				}
+				return {valid:true};
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				
+				if(_dataChanged && _data) {
+					_dataChanged = false;
+				
+					if(_data.hasOwnProperty("value") && !_value)
+						value = _data.value;
+					
+					_internalOnly = (_data.hasOwnProperty('internalOnly') && _data.internalOnly == true);
+					_showAdvanced = (_data.hasOwnProperty('showAdvanced') && _data.showAdvanced == true);
+				}	
+				
+				if(_valueChanged && _value) {
+					_valueChanged = false;
+					
+					if(_value.hasOwnProperty("description"))
+						description = _value.description;
+					
+					if(_value.hasOwnProperty("path")) {
+						path = _value.path;
+						
+					}
+				}
+				
+			}
+			
+			private function _openFileChooser():void {
+				dispatchEvent(new BrightEvent(BrightEvent.DATAEVENT, {type:"openLinkChooser", 
+					callback:_chosenLinkCallback, 
+					internalOnly: _internalOnly,
+					showAdvanced: _showAdvanced}));
+			}
+			
+			private function _chosenLinkCallback(fnvalue:String):void {
+				path = fnvalue;
+			}
+			
+			[Bindable(event="loadingChanged")]
+			private function set _isloading(val:Boolean):void {
+				if(val != _intisloading) {
+					_intisloading = val;
+					dispatchEvent(new Event("loadingChanged"));
+				}
+				
+			}
+			private function get _isloading():Boolean {
+				return _intisloading;
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+		
+	<mx:Canvas 
+		x="158" 
+		y="0" 
+		maxWidth="562" 
+		minWidth="330"
+		width="100%"
+		horizontalScrollPolicy="off"
+		verticalScrollPolicy="off"
+		height="90">
+			
+		<mx:Label
+			x="10"
+			width="70"
+			text="Path:" y="0"/>
+		
+		<controls:BrightTextInput
+			id="file_txt"
+			editable="false"
+			click="path = ''"
+			maxWidth="300"
+			minWidth="150"
+			left="85"
+			right="100"
+			fieldname="{displaylabel}"
+			text="{displaypath}"  
+			y="0"/>
+		
+		<mx:Image
+			visible="{_isloading}"
+			y="5"
+			right="104"
+			source="{IconController.getGray('loading')}" />
+			
+		<mx:Label
+			x="10"
+			y="40"
+			width="70"
+			text="Description:" />
+		
+		<controls:BrightTextInput
+			left="85"
+			right="100"
+			y="38"
+			id="description_txt"
+			maxWidth="300"
+			minWidth="150"
+			text="{description}" />
+			
+		<mx:Button
+			right="0"
+			y="0"
+			label="Browse..."
+			click="_openFileChooser()"/>
+	</mx:Canvas>
+	
+</mx:Module>

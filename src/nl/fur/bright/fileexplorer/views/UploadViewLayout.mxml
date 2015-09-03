@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UploadView 
+	xmlns="nl.fur.bright.fileexplorer.views.*" 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	layout="vertical"
+	
+	title="Upload Files"
+	showCloseButton="true"
+	show="getFolders()"
+	creationComplete="getFolders()"
+	close="closePopup()"
+	width="500" 
+	height="400">
+	<mx:Script>
+		<![CDATA[
+			import nl.fur.bright.fileexplorer.model.Model;
+		]]>
+	</mx:Script>
+		
+	<mx:HBox>
+		
+		<mx:Button
+			label="Select file(s)"
+			click="browseFiles()" />
+		
+		<mx:Button
+			label="Upload file(s)"
+			enabled="{Model.instance.filesVO.uploadFiles.length != 0}"
+			click="uploadFiles()" />
+			
+		<mx:Button
+			label="Remove file"
+			click="removeFile()"
+			enabled="{files_dg.selectedIndex != -1}" />
+		
+	</mx:HBox>
+	
+	<mx:DataGrid
+		width="100%"
+		height="100%"
+		editable="true"
+		id="files_dg"
+		dataProvider="{Model.instance.filesVO.uploadFiles}">
+		
+		<mx:columns>
+		
+			<mx:DataGridColumn
+				width="150"
+				headerText="Filename"
+				editable="false"
+				dataField="name" />
+		
+			<mx:DataGridColumn
+				width="200"
+				editable="true"
+				headerText="Remote dir"
+				labelFunction="formatDir"
+				itemEditor="nl.fur.bright.fileexplorer.views.renderers.TreeRenderer"
+				editorDataField="folder"
+				editorHeightOffset="200"
+				dataField="remotedir">
+			</mx:DataGridColumn>
+		
+			<mx:DataGridColumn
+				width="150"
+				headerText="Remote filename"
+				editorDataField="text"
+				editable="true"
+				dataField="remotename">
+				<mx:itemEditor>
+					<mx:Component>
+						<mx:TextInput
+							styleName="personalTextInput"
+							restrict="a-z0-9.\-_" />
+					</mx:Component>
+				</mx:itemEditor>
+			</mx:DataGridColumn>
+			
+			<mx:DataGridColumn
+				width="75"
+				editable="false"
+				headerText="Filesize"
+				dataField="size" />
+			
+		</mx:columns>
+		
+	</mx:DataGrid>
+	
+	<mx:CheckBox id="chb_resize" label="Resize images before uploading" selected="true" toolTip="Images are resized to a maximum resolution of 1920 x 1080 before uploading" />
+	
+</UploadView>

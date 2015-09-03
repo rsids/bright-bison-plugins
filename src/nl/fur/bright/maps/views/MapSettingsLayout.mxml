@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<views:MapSettings
+	layout="absolute"
+	width="201"
+	title="Map Settings"
+	height="100%"
+	xmlns="nl.bs10.gmaps.views.*"
+	xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:views="nl.fur.bright.maps.views.*">
+	
+	<mx:Label
+		text="Lat" />
+		
+	<mx:Label
+		x="60"
+		width="80"
+		fontWeight="bold"
+		text="{lat}" />
+	
+	<mx:Label
+		y="20"
+		text="Lng" />
+		
+	<mx:Label
+		x="60"
+		y="20"
+		width="80"
+		fontWeight="bold"
+		text="{lng}" />
+	
+	<mx:Label
+		y="40"
+		width="80"
+		text="Zoom" />
+		
+	<mx:Label
+		x="60"
+		y="40"
+		fontWeight="bold"
+		text="{zoom}" />
+		
+	<mx:Button
+		y="60"
+		width="171"
+		click="setSave()"
+		label="{setsavelabel}" />
+		
+	<mx:Label
+		y="100"
+		text="Map type" />
+		
+	<mx:ComboBox
+		x="60"
+		y="98"
+		change="maptypeChangeHandler(event)"
+		dataProvider="{maptypes}"
+		id="maptype_cmb" />
+		
+</views:MapSettings>

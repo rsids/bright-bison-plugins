@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module 
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	verticalAlign="bottom"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="horizontal" xmlns:controls="nl.bs10.bright.controls.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.validators.Validator;
+			
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.bs10.brightlib.controllers.ValidatorController;
+			import nl.bs10.brightlib.events.BrightEvent;
+			import nl.bs10.brightlib.interfaces.IPage;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			import nl.fur.vein.events.VeinDispatcher;
+			import nl.fur.vein.events.VeinEvent;
+			
+			private var _label:String;
+			private var _data:Object;
+			private var _value:String;
+			
+			private var _allowedTemplates:Array;
+			private var _intisloading:Boolean = false;
+			private var _internalOnly:Boolean = false;
+			private var _dataChanged:Boolean = false;
+			private var _displaylabel:String;
+			
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Marker Selector";
+				pp.version = "1.3.0";
+				pp.type = "markerselector";
+				pp.contenttype = "array";
+				pp.modificationdate = new Date(2012,06,02);
+				pp.properties = [{name: "multiple", type:"boolean"}, {name:"filter", type:"array"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				_markerlabel =
+				label = null;
+				value = 
+				data = null;
+				_isloading = false;
+			}
+			
+			override public function set label(value:String):void {
+				super.label = value;
+				_label = value;
+			}
+			
+			override public function get label():String {
+				return this._label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(value:String):void {
+				if(value !== _displaylabel) {
+					_displaylabel = value;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				if(!val)
+					return; 
+				
+				_data = val;
+				_dataChanged = true;
+				invalidateProperties();
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			public function set value(val:*):void {
+				if(val){
+					_value = val.toString();
+					_markerlabel = 'markerId=' + _value.toString();
+				}
+			}
+			
+			public function get value():* {
+				if(!(_value is Array))
+					return [_value];
+				
+				return _value; 
+			}
+			
+			public function validate():Object {
+				if(_data && _data.hasOwnProperty("required") && _data.required && text_txt.text == "")
+					return {valid:false, reasons:["The field '" + displaylabel + "' is required"]};
+				
+				return {valid:true};
+			}
+			
+			public function setLabel(lbl:String):void {
+				_markerlabel = lbl;
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				
+				if(!_dataChanged)
+					return;
+				_dataChanged = false;
+				
+				if(_data.hasOwnProperty("value") && (!value || value.length == 0))
+					value = 'markerId=' + _data.value;
+					
+				_allowedTemplates = _data.hasOwnProperty('allowedTemplates') ? _data.allowedTemplates : null;
+			}
+
+			
+			[Bindable(event="loadingChanged")]
+			private function set _isloading(val:Boolean):void {
+				if(val != _intisloading) {
+					_intisloading = val;
+					dispatchEvent(new Event("loadingChanged"));
+				}
+				
+			}
+			private function get _isloading():Boolean {
+				return _intisloading;
+			}
+			
+			/**
+			 * _openMarkerListPopup function
+			 *  
+			 **/
+			private function _openMarkerListPopup():void {
+				var filter:Array = _data.hasOwnProperty('filter') ? _data.filter : null;
+				VeinDispatcher.instance.dispatch("requestPopup", {callback: _selectedMarkerCallback, filter: filter, popup:'markerlist'});
+			}
+			
+			/**
+			 * _selectedMarkerCallback function
+			 *  
+			 **/
+			private function _selectedMarkerCallback(marker:IPage):void {
+				value = marker['markerId'];
+				_markerlabel = marker.label;
+			}
+			
+			/**
+			 * _setRealMarkerLabel function
+			 *  
+			 **/
+			private function _setRealMarkerLabel(label:String):void {
+				if(label) {
+					_markerlabel = label;
+				} else {
+					_markerlabel = '';
+					_value = null
+				}
+			}
+			
+			private var __markerlabel:String;
+			
+			[Bindable(event="_markerlabelChanged")]
+			public function set _markerlabel(val:String):void {
+				if(val !== __markerlabel) {
+					__markerlabel = val;
+					_isloading = false;
+					if(__markerlabel && __markerlabel.indexOf("markerId=") == 0) {
+						// Fetch realurl
+						_isloading = true;
+						var id:int = parseInt(__markerlabel.split('=').pop());
+						VeinDispatcher.instance.dispatch('getMarkerLabel', {markerId: id, callback: _setRealMarkerLabel});
+					}
+					dispatchEvent(new Event("_markerlabelChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the _markerlabel property
+			 **/
+			public function get _markerlabel():String {
+				return __markerlabel;
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		y="2"
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+	
+	<mx:HBox
+		verticalAlign="middle">
+	
+		<controls:BrightTextInput
+			x="158"
+			editable="false"
+			width="300"
+			click="value=''"
+			fieldname="{displaylabel}"
+			text="{_markerlabel}"
+			id="text_txt" />
+		
+		<mx:Image
+			visible="{_isloading}"
+			y="5"
+			x="439"
+			source="{IconController.getGray('loading')}" />
+		
+		<mx:Button
+			x="464"
+			label="Browse..."
+			click="_openMarkerListPopup()"/>
+		
+	</mx:HBox>
+	
+</mx:Module>

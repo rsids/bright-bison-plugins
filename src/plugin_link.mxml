@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	verticalAlign="bottom"
+	layout="absolute"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:controls="nl.bs10.bright.controls.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.bs10.brightlib.events.BrightEvent;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			
+			private var _label:String;
+			private var _data:Object;
+			private var _value:String;
+			private var _path:String;
+			private var _suffix:String = "";
+			
+			private var _allowedTemplates:Array;
+			private var _intisloading:Boolean = false;
+			private var _internalOnly:Boolean = false;
+			private var _dataChanged:Boolean = false;
+			private var _displaylabel:String;
+		
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Link";
+				pp.version = "3.2.0";
+				pp.type = "link";
+				pp.contenttype = "string";
+				pp.modificationdate = new Date(2014,00,13);
+				pp.properties = [{name: "internalOnly", type:"boolean"}, {name:"allowedTemplates", type: "array"}, {name:"default", type: "string"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				path =
+				label = null;
+				value = 
+				data = null;
+				_isloading = false;
+			}
+			
+			override public function set label(val:String):void {
+				super.label = val;
+				_label = val;
+			}
+			
+			override public function get label():String {
+				return this._label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(val:String):void {
+				if(val !== _displaylabel) {
+					_displaylabel = val;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			[Bindable(event='pathChanged')]
+			public function set path(val:String):void {
+				if(val !== _path) {
+					_path = val;
+					_isloading = false;
+					if(_path && _path.indexOf("/index.php") == 0) {
+						// Fetch realurl
+						_isloading = true;
+						var pa:Array = _path.match(/^\/index\.php\?tid=([0-9]*)(.*)/i);
+						_suffix = pa[2];
+						dispatchEvent(new BrightEvent(BrightEvent.DATAEVENT, {type:"getPathForTid", callback:setRealPath, tid:pa[1]}));
+					}
+					dispatchEvent(new Event('pathChanged'));
+				}
+				
+			}
+			
+			public function get path():String {
+				return _path;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				if(!val)
+					return; 
+				
+				_data = val;
+				_dataChanged = true;
+				invalidateProperties();
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			public function set value(val:*):void {
+				if(val is String) {
+					_value = val.toString();
+					path = _value.toString();	
+				}
+			}
+			
+			public function get value():* {
+				return _value; 
+			}
+			
+			public function validate():Object {
+				if(_data && _data.hasOwnProperty("required") && _data.required && text_txt.text == "")
+					return {valid:false, reasons:["The field '" + displaylabel + "' is required"]};
+				
+				return {valid:true};
+			}
+			
+			public function setRealPath(realpath:String):void {
+				path = realpath + _suffix;
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				
+				if(!_dataChanged)
+					return;
+				_dataChanged = false;
+				
+				if(_data.hasOwnProperty("value") && (!value || value.length == 0))
+					value = _data.value;
+				
+				if(_data.hasOwnProperty("default") && (!value || value.length == 0))
+					value = _data['default'];
+				
+				_internalOnly = (_data.hasOwnProperty('internalOnly') && _data.internalOnly == true);				
+				_allowedTemplates = _data.hasOwnProperty('allowedTemplates') ? _data.allowedTemplates : null;
+			}
+			
+			private function _openFileChooser():void {
+				dispatchEvent(new BrightEvent(BrightEvent.DATAEVENT, {type:"openLinkChooser", 
+																		callback:_chosenLinkCallback, 
+																		internalOnly: _internalOnly,
+																		showAdvanced: false,
+																		allowedTemplates: _allowedTemplates}));
+			}
+			
+			private function _chosenLinkCallback(fnvalue:String):void {
+				value = fnvalue;
+			}
+			
+			[Bindable(event="loadingChanged")]
+			private function set _isloading(val:Boolean):void {
+				if(val != _intisloading) {
+					_intisloading = val;
+					dispatchEvent(new Event("loadingChanged"));
+				}
+				
+			}
+			private function get _isloading():Boolean {
+				return _intisloading;
+			}
+		
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		y="2"
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+		
+	<controls:BrightTextInput
+		x="158"
+		editable="false"
+		width="300"
+		click="value=''"
+		fieldname="{displaylabel}"
+		text="{path}"
+		id="text_txt" />
+		
+	<mx:Image
+		visible="{_isloading}"
+		y="5"
+		x="439"
+		source="{IconController.getGray('loading')}" />
+	
+	<mx:Button
+		x="464"
+		label="Browse..."
+		click="_openFileChooser()"/>
+	
+</mx:Module>

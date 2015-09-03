@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	layout="horizontal" 
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	xmlns:components="nl.bs10.brightlib.components.*" 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	width="100%">
+	
+	<mx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.events.ListEvent;
+			
+			import nl.bs10.brightlib.components.Prompt;
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.bs10.brightlib.events.BrightEvent;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			import nl.fur.bright.customlist.ItemRenderer;
+			import nl.fur.vein.events.VeinDispatcher;
+			import nl.fur.vein.events.VeinEvent;
+			
+			private var _label:String;
+			private var _displaylabel:String;
+			private var _data:Object;
+			private var _value:Object;
+			private var _valueChanged:Boolean;
+			private var _dataChanged:Boolean;
+			
+			private var _multiple:Boolean;
+			private var _multipleChanged:Boolean;
+			
+			private var _listData:ArrayCollection;
+			private var _listDataChanged:Boolean;
+			
+			private var _listDisplayLabel:String;
+			private var _listDisplayLabelChanged:Boolean;
+			
+			private var _table:String;
+			private var _tableChanged:Boolean;
+			
+			private var _identifier:String;
+			private var _identifierChanged:Boolean;
+			
+			private var _initialized:Boolean;
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "List of custom items";
+				pp.version = "1.2.0";
+				pp.type = "custom_list";
+				pp.contenttype = "json";
+				pp.modificationdate = new Date(2014,0,9);
+				pp.properties = [{name: "tablename", type:"string"},
+								{name: "displaylabel", type:"string"},
+								{name: "identifier", type:"string"},
+								{name: "default", type:"string"},
+								{name: "allowedit", type:"boolean"},
+								{name: "multiple", type:"boolean"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				_listData = null;
+				data =
+				label =
+				_identifier = 
+				_table = 
+				_listDisplayLabel = 
+				displaylabel = null;
+				VeinDispatcher.instance.removeEventListener('customTableValueRequestResult', _onCustomTableValueRequestResult);
+			}
+			
+			public function validate():Object {
+				return {valid:true};
+			}
+			
+			override protected function createChildren():void {
+				super.createChildren();
+				VeinDispatcher.instance.removeEventListener('customTableValueRequestResult', _onCustomTableValueRequestResult);
+				VeinDispatcher.instance.addEventListener('customTableValueRequestResult', _onCustomTableValueRequestResult, false, 0, true);
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				if(_dataChanged) {
+					_dataChanged = false;
+					
+					
+					if(_data.hasOwnProperty("multiple")) {
+						multiple = _data.multiple as Boolean;
+					}
+					if(_data.hasOwnProperty("tablename")) {
+						table = _data.tablename;
+					}
+					if(_data.hasOwnProperty("identifier")) {
+						identifier = _data.identifier;
+					}
+					if(_data.hasOwnProperty("allowedit")) {
+						allowedit = _data.allowedit;
+					}
+					if(_data.hasOwnProperty("displaylabel")) {
+						listDisplayLabel = _data.displaylabel;
+					}
+					
+					if(_data.hasOwnProperty("default") && _value == null) {
+						try {
+							value = JSON.decode(_data['default']);	
+						} catch(err:Error) {
+							// Invalid json, ignore it
+						}
+					}
+				}
+				
+				if(_tableChanged) {
+					_tableChanged = false;
+					VeinDispatcher.instance.dispatch('requestCustomTableValue', table);
+				}
+				
+				if(_listDataChanged) {
+					_listDataChanged = false;
+					var ug:Object;
+					// Set selected value;
+					if(!multiple) {
+						list_cmb.selectedIndex = -1;
+						if(_value != null) {
+							var vid:int;
+							// Bugfix
+							if(typeof(_value) == 'number' || typeof(_value) == 'string') {
+								vid = parseInt(_value.toString());
+							} else {
+								vid = parseInt(_value[identifier])
+							}
+							for each(ug in listData) {
+							
+								if(ug[identifier] == vid) {
+									list_cmb.selectedItem = ug;
+								}
+							}
+						}
+					} else {
+						
+						var ld:int = listData.length;
+						var si:Array = [];
+						while(--ld > -1) {
+							var vl:uint = (_value != null) ? _value.length : 0;
+							while(--vl > -1) {
+								if(_value[vl] == listData[ld][identifier]) {
+									si.push(ld);
+								}
+							}
+						}
+						list_tl.selectedIndices = si;
+						
+					}
+				}
+				
+			}
+			
+			protected function onCmbChange(event:ListEvent):void {
+				_value = null;
+				if(list_cmb.selectedItem) {
+					_value = {};
+					_value[identifier] = list_cmb.selectedItem[identifier];
+				}
+			}
+			
+			/**
+			 * onDeleteItem function
+			 * @param event The event  
+			 **/
+			private function onDeleteItem(event:Event):void {
+				Alert.show("Are you sure you want to delete this item?", 
+							"Are you sure?", 
+							Alert.YES|Alert.NO, 
+							this, 
+							function(closeEvent:CloseEvent):void{
+								if(closeEvent.detail == Alert.YES) {
+									VeinDispatcher.instance.dispatch("customTableValueDelete", {table: table, identifier:identifier, id:event.currentTarget.data[identifier]});
+								}
+							});
+			}
+			
+			/**
+			 * _onAdd function
+			 *  
+			 **/
+			private function _onAdd(event:Event):void {
+				Prompt.show("Please enter the name of the item", "Enter name", 
+					function(event:BrightEvent):void {
+						if(event.data) {
+							VeinDispatcher.instance.dispatch("customTableValueAdd", {table: table, labelfield:listDisplayLabel,name:event.data});
+						}
+					}
+				);
+			}
+			
+			private function _onCustomTableValueRequestResult(event:VeinEvent):void {
+				if(event.data.tablename == table)
+					listData = event.data.value as ArrayCollection;
+			}
+			
+			override public function set label(val:String):void {
+				super.label = val;
+				_label = val;
+			}
+			
+			override public function get label():String {
+				return this._label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(val:String):void {
+				if(val !== _displaylabel) {
+					_displaylabel = val;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				if(!val)
+					return; 
+				_data = val;
+				
+				_dataChanged = true;
+				invalidateProperties();
+				
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			private var _allowedit:Boolean;
+			
+			[Bindable(event="alloweditChanged")]
+			public function set allowedit(value:Boolean):void {
+				if(value !== _allowedit) {
+					_allowedit = value;
+					dispatchEvent(new Event("alloweditChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the allowedit property
+			 **/
+			public function get allowedit():Boolean {
+				return _allowedit;
+			}
+			
+			
+			[Bindable(event="tableChanged")]
+			public function set table(val:String):void {
+				if(value !== _table) {
+					_table = val;
+					_tableChanged = true;
+					invalidateProperties();
+					dispatchEvent(new Event("tableChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the table property
+			 **/
+			public function get table():String {
+				return _table;
+			}
+			
+			
+			[Bindable(event="multipleChanged")]
+			public function set multiple(val:Boolean):void {
+				if(val !== _multiple) {
+					_multiple = val;
+					_multipleChanged = true;
+					invalidateProperties();
+					dispatchEvent(new Event("multipleChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the multiple property
+			 **/
+			public function get multiple():Boolean {
+				return _multiple;
+			}
+			
+			
+			[Bindable(event="listDataChanged")]
+			public function set listData(val:ArrayCollection):void {
+				if(value !== _listData) {
+					_listData = val;
+					_listDataChanged = true;
+					invalidateProperties();
+					dispatchEvent(new Event("listDataChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the listData property
+			 **/
+			public function get listData():ArrayCollection {
+				return _listData;
+			}
+			
+			
+			[Bindable(event="listDisplayLabelChanged")]
+			public function set listDisplayLabel(val:String):void {
+				if(value !== _listDisplayLabel) {
+					_listDisplayLabel = val;
+					_listDisplayLabelChanged = true;
+					invalidateProperties();
+					dispatchEvent(new Event("listDisplayLabelChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the listDisplayLabel property
+			 **/
+			public function get listDisplayLabel():String {
+				return _listDisplayLabel;
+			}
+			
+			
+			[Bindable(event="identifierChanged")]
+			public function set identifier(val:String):void {
+				if(value !== _identifier) {
+					_identifier = val;
+					_identifierChanged = true;
+					invalidateProperties();
+					dispatchEvent(new Event("identifierChanged"));
+				}
+			}
+			
+			/** 
+			 * Getter/Setter methods for the identifier property
+			 **/
+			public function get identifier():String {
+				return _identifier;
+			}
+			
+			public function set value(val:*):void {
+				if(val is String) {
+					try {
+						_value = JSON.decode(val);
+					} catch(ex:Error) {/*Swallow it*/}
+				} else {
+					
+					_value = val;
+				}
+				_valueChanged = true;
+				invalidateProperties();
+			}
+			
+			public function get value():* {
+				return JSON.encode(_value);
+			}
+			
+			[Bindable(event="listDisplayLabelChanged")]
+			private function _getLabel(item:Object):String {
+				if(listDisplayLabel) 
+					return item[listDisplayLabel];
+				
+				return item.toString();
+			}
+
+			private function onLstChange(event:Event):void {
+				if(!(_value is Array)) {
+					_value = [];
+				}
+				
+				for(var i:int = 0; i < list_tl.selectedItems.length; i++) {
+					_value.push(list_tl.selectedItems[i][identifier]);
+				}
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+	
+	<mx:ComboBox
+		id="list_cmb"
+		change="onCmbChange(event)"
+		labelFunction="_getLabel"
+		
+		visible="{!multiple}"
+		includeInLayout="{!multiple}"
+		dataProvider="{listData}"	/>
+	
+	<mx:TileList
+		dataProvider="{listData}"
+		visible="{multiple}"
+		labelFunction="_getLabel"
+		columnCount="{Math.floor(width / 250)}"
+		height="{Math.ceil(listData.length / Math.floor(width / 250)) * 32}"
+		rowHeight="32"
+		variableRowHeight="false"
+		includeInLayout="{multiple}"
+		textAlign="left"
+		click="onLstChange(event)"
+		allowMultipleSelection="true"
+		id="list_tl"
+		minHeight="150"
+		change="onLstChange(event)"
+		width="100%" />
+	
+	<components:GrayImageButton
+		id="addButton"
+		visible="{allowedit}"
+		toolTip="Add item"
+		click="_onAdd(event)"
+		source="{IconController.getGray('add')}" />	
+	
+</mx:Module>

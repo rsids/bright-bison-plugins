@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ExplorerView 
+	width="100%" 
+	height="100%" 
+	keyUp="onKeyUp(event)"
+	xmlns="nl.fur.bright.fileexplorer.views.*" 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:tree="nl.flexperiments.tree.*"
+	xmlns:components="nl.bs10.brightlib.components.*"> 
+	<mx:Script>
+		<![CDATA[
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.fur.bright.fileexplorer.controllers.AppController;
+			import nl.fur.bright.fileexplorer.model.Model;
+		]]>
+	</mx:Script>
+	
+	<mx:VBox
+		height="100%"
+		width="30%">
+		
+		<mx:Button
+			click="selectFolder()"
+			visible="{Model.instance.filesVO.foldersOnly}"
+			includeInLayout="{Model.instance.filesVO.foldersOnly}"
+			label="Select folder" />
+		
+		<mx:Canvas
+			borderColor="#929292"
+			borderStyle="solid"
+			borderThickness="1"
+			backgroundColor="#ffffff"
+			horizontalScrollPolicy="off"
+			verticalScrollPolicy="off"
+			height="100%"
+			width="100%">
+			
+			
+			<mx:Canvas
+				top="0"
+				width="100%"
+				bottom="43">
+				
+				<tree:FlpTree
+					backgroundColor="#ffffff"
+					selectionColor="#cccccc"
+					selectedNodeChange="getFilesCommand(event)"
+					nodeDragDrop="dropFile(event)"
+					open="itemOpenEvent(event)"
+					allowDropOnAllNodes="true"
+					allowDropBetweenNodes="false"
+					id="folder_tree"
+					dropEnabled="true"
+					icon="@Embed(source='assets/folder.png')"
+					openedfoldericon="@Embed(source='assets/folder.png')"
+					closedfoldericon="@Embed(source='assets/folder.png')"
+					dataProvider="{Model.instance.filesVO.folders}"
+					width="99%"
+					height="100%" />
+					
+			</mx:Canvas>
+			
+			<mx:Canvas
+				width="100%"
+				borderColor="#929292"
+				borderStyle="solid"
+				borderThickness="1"
+				height="43"
+				bottom="0"
+				borderSides="top"
+				backgroundColor="#eaeaea">
+				
+				<mx:HBox styleName="grayIconBar" paddingLeft="14" verticalCenter="0" horizontalScrollPolicy="off">
+					
+					<components:GrayImageButton 
+						source="{IconController.getGray('add')}" 
+						toolTip="Create folder" 
+						click="addFolder()" />
+					
+					<components:GrayImageButton 
+						source="{IconController.REFRESH}" 
+						click="refresh()"
+						toolTip="Refresh tree" />
+					
+					<components:GrayImageButton 
+						source="{IconController.getGray('trash')}" 
+						toolTip="Delete folder" 
+						enabled="{Model.instance.filesVO.currentFolder != null}"
+						click="deleteFolder(folder_tree.selectedNode)" />
+					
+				</mx:HBox>
+				
+			</mx:Canvas>
+			
+		</mx:Canvas>
+	</mx:VBox>
+	
+	<mx:VBox
+		borderColor="#929292"
+		borderStyle="solid"
+		borderThickness="1"
+		visible="{!Model.instance.filesVO.foldersOnly}"
+		includeInLayout="{!Model.instance.filesVO.foldersOnly}"
+		width="70%"
+		height="100%">
+		
+		<mx:HBox
+			height="60"
+			styleName="headerBar"
+			horizontalScrollPolicy="off"
+			verticalScrollPolicy="off"
+			width="100%">
+			
+			<mx:Label
+				horizontalCenter="0"
+				verticalCenter="0"
+				visible="{Model.instance.filesVO.files.length == 0}"
+				includeInLayout="false"
+				selectable="false"
+				text="The selected folder is empty" />
+				
+			<mx:Spacer
+				width="100%" />
+				
+			<mx:Button
+				click="uploadFromUrl()"
+				visible="{Model.instance.filesVO.showUpload}"
+				includeInLayout="{Model.instance.filesVO.showUpload}"
+				label="Upload from URL" />
+				
+			<mx:Button
+				click="uploadFiles()"
+				visible="{Model.instance.filesVO.showUpload}"
+				includeInLayout="{Model.instance.filesVO.showUpload}"
+				label="Upload file(s)" />
+				
+			<mx:Button
+				click="deleteFile()"
+				visible="{Model.instance.filesVO.showDelete}"
+				includeInLayout="{Model.instance.filesVO.showDelete}"
+				enabled="{files_list.selectedIndex != -1}"
+				label="Delete file(s)" />
+				
+			<mx:Button
+				click="selectFile()"
+				visible="{Model.instance.filesVO.showSelect}"
+				includeInLayout="{Model.instance.filesVO.showSelect}"
+				enabled="{files_list.selectedIndex != -1}"
+				label="Select file(s)" />
+				
+		</mx:HBox>
+		
+		<mx:TileList
+			borderThickness="0"
+			id="files_list"
+			width="100%"
+			height="100%"
+			direction="vertical"
+			selectionColor="#C6E8FA"
+			dragEnabled="true"
+			dragStart="startFileDrag(event)"
+			selectable="true"
+			selectedIndex="{Model.instance.filesVO.selectedFileIndex}"
+			allowMultipleSelection="{Model.instance.filesVO.multiple}"
+			itemClick="selectionChanged(event)"
+			itemRenderer="nl.fur.bright.fileexplorer.views.renderers.SmallFileRenderer"
+			dataProvider="{Model.instance.filesVO.files}" />
+			
+		
+		<mx:Canvas
+			width="100%"
+			borderColor="#929292"
+			borderStyle="solid"
+			borderThickness="1"
+			height="80"
+			horizontalScrollPolicy="off"
+			verticalScrollPolicy="off"
+			borderSides="top"
+			id="info_canvas"
+			backgroundColor="#eaeaea">
+			
+			<mx:Image				
+				width="{THUMBW}"
+				height="{THUMBH}"
+				id="thumb_img" 
+				source="{thumbnail}"
+				x="2" 
+				y="2"/>
+				
+			<mx:Label 
+				x="108" 
+				y="10" 
+				id="filename_lbl" 
+				width="151" 
+				text="{Model.instance.filesVO.currentFile.filename}"/>
+			
+			<mx:Label 
+				x="108" 
+				y="34" 
+				id="filetype_lbl" 
+				width="151"
+				text="{getFileType(Model.instance.filesVO.currentFile)}"/>
+				
+			<mx:ViewStack
+				x="267"
+				id="props_vs"
+				visible="{Model.instance.filesVO.currentFile != null}"
+				includeInLayout="{Model.instance.filesVO.currentFile != null}"
+				width="100%"
+				horizontalScrollPolicy="off"
+				verticalScrollPolicy="off"
+				height="80">
+				
+				<mx:Canvas
+					horizontalScrollPolicy="off"
+					verticalScrollPolicy="off"
+					width="100%"
+					height="80">
+					
+					<mx:Label 
+						x="0"
+						y="10" 
+						width="83" 
+						text="Filesize:" 
+						textAlign="right"/>
+					
+					<mx:Label 
+						x="91" 
+						y="10" 
+						width="200"
+						text="{Model.instance.filesVO.formatFileSize(Model.instance.filesVO.currentFile.filesize)}"/>
+					
+				</mx:Canvas>
+				
+				<mx:Canvas
+					horizontalScrollPolicy="off"
+					verticalScrollPolicy="off"
+					width="100%"
+					height="80">
+					
+					<mx:Label
+						x="0" 
+						y="10" 
+						width="83" 
+						text="Dimensions:" 
+						textAlign="right"/>
+					
+					<mx:Label 
+						x="91" 
+						y="10"
+						width="200"
+						text="{dimensions}"/>
+					
+					<mx:Label 
+						x="0"
+						y="34" 
+						width="83" 
+						text="Filesize:" 
+						textAlign="right"/>
+					
+					<mx:Label 
+						x="91" 
+						y="34" 
+						width="200"
+						text="{Model.instance.filesVO.formatFileSize(Model.instance.filesVO.currentFile.filesize)}"/>
+					
+				</mx:Canvas>
+				
+				<mx:Canvas
+					horizontalScrollPolicy="off"
+					verticalScrollPolicy="off"
+					width="100%"
+					height="80">
+					
+					<mx:Label
+						x="0" 
+						y="10" 
+						width="83" 
+						text="Artist:" 
+						textAlign="right"/>
+					
+					
+					<mx:Label 
+						x="91" 
+						y="10"
+						width="100"
+						text="{id3.TPE1}"/>
+
+					<mx:Label 
+						x="0"
+						y="34" 
+						width="83" 
+						text="Title:" 
+						textAlign="right"/>
+					
+					<mx:Label 
+						x="91" 
+						y="34" 
+						width="100"
+						text="{id3.TIT2}"/>
+						
+						
+					
+					<mx:Label
+						x="200" 
+						y="10" 
+						width="83" 
+						text="Album:" 
+						textAlign="right"/>
+					
+					
+					<mx:Label 
+						x="291" 
+						y="10"
+						width="100"
+						text="{id3.TALB}"/>
+
+					<mx:Label 
+						x="200"
+						y="34" 
+						width="83" 
+						text="Track:" 
+						textAlign="right"/>
+					
+					<mx:Label 
+						x="291" 
+						y="34" 
+						width="100"
+						text="{id3.TRCK}"/>
+						
+						
+					
+					<mx:Label
+						x="400" 
+						y="10" 
+						width="83" 
+						text="Genre:" 
+						textAlign="right"/>
+					
+					
+					<mx:Label 
+						x="491" 
+						y="10"
+						width="100"
+						text="{id3.TCON}"/>
+
+					<mx:Label 
+						x="400"
+						y="34" 
+						width="83" 
+						text="Year:" 
+						textAlign="right"/>
+					
+					<mx:Label 
+						x="491" 
+						y="34" 
+						width="100"
+						text="{id3.TYER}"/>
+					
+					<mx:Label
+						x="600" 
+						y="10" 
+						width="83" 
+						text="Length:" 
+						textAlign="right"/>
+					
+					
+					<mx:Label 
+						x="691" 
+						y="10"
+						width="100"
+						text="{id3.TLEN}"/>
+
+					<mx:Label 
+						x="600"
+						y="34" 
+						width="83" 
+						text="Filesize:" 
+						textAlign="right"/>
+					
+					<mx:Label 
+						x="691" 
+						y="34" 
+						width="100"
+						text="{Model.instance.filesVO.formatFileSize(Model.instance.filesVO.currentFile.filesize)}"/>
+					
+				</mx:Canvas>
+				
+			</mx:ViewStack>
+			
+		</mx:Canvas>
+
+	</mx:VBox>
+</ExplorerView>

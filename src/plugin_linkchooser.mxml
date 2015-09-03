@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinkChooserController
+	horizontalAlign="left"
+	layout="absolute" 
+	width="100%" 
+	height="500" 
+	horizontalScrollPolicy="off"
+	verticalScrollPolicy="off"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns="nl.fur.bright.plugins.linkchooser.controllers.*"
+	xmlns:tree="nl.flexperiments.tree.*" 
+	xmlns:views="nl.fur.bright.plugins.linkchooser.views.*">
+	<mx:Script>
+		<![CDATA[
+			import nl.fur.bright.plugins.linkchooser.model.Model;
+		]]>
+	</mx:Script>
+	
+	<mx:Button
+		right="5"
+		label="Select"
+		click="Model.instance.dispatch('selectLink')" />
+	
+	<mx:TabBar
+		id="tab"
+		x="5"
+		visible="{Model.instance.showAdvancedOptions}"
+		dataProvider="{['Target', 'Properties']}"
+		selectedIndex="0" />
+	
+	<mx:ViewStack
+		y="30"
+		selectedIndex="{tab.selectedIndex}"
+		width="100%"
+		height="100%">
+		
+		<views:SelectViewLayout
+			id="selectView" />
+		
+		<views:AdvancedViewLayout
+			id="advancedView" />
+		
+	</mx:ViewStack>
+	
+</LinkChooserController>

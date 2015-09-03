@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module 	
+	horizontalAlign="left"
+	styleName="listBox"
+	width="100%"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	verticalAlign="top"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="vertical" 
+	verticalGap="0"
+	xmlns:components="nl.bs10.brightlib.components.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.ChildExistenceChangedEvent;
+			
+			import nl.bs10.brightlib.components.GrayImageButton;
+			import nl.bs10.brightlib.components.PluginBox;
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.bs10.brightlib.events.BrightEvent;
+			import nl.bs10.brightlib.events.FileExplorerEvent;
+			import nl.bs10.brightlib.interfaces.IPlugin;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			import nl.bs10.brightlib.objects.Template;
+			import nl.bs10.list.ListItem;
+			import nl.bs10.list.TemplateItem;
+			
+			private var _label:String;			
+			[Bindable] private var _deftypes:Array;
+			[Bindable] private var _tabs:ArrayCollection;
+			
+			private var _definitionsLoaded:Boolean;
+			
+			private var _displaylabel:String;
+			private var _value:Array;
+
+			private var _data:Object;
+
+			private var _valueChanged:Boolean;
+			private var _dataChanged:Boolean;
+			private var _tabsChanged:Boolean;
+			
+			private var _maximum:Number = -1;
+			private var _minimum:Number = -1;
+			
+			override protected function createChildren():void {
+				super.createChildren();
+				_tabs = new ArrayCollection();
+			}
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Tab-style List";
+				pp.version = "2.1.2";
+				pp.type = "tablist";
+				pp.contenttype = "array";
+				pp.modificationdate = new Date(2012,05,11);
+				pp.properties = [{name: "minimum", type:"number"}, {name: "maximum", type:"number"}, {name: "definitionids", type:"array"}, {name:"defaulttabIds", type:"array"}, {name:"defaulttabTitles", type:"array"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				_deftypes = null;
+				data = 
+				value =
+				displaylabel =
+				label = null;
+				removeAllChildren();
+				if(listitems_vb) {
+					var children:Array = listitems_vb.getChildren();
+					var result:Array = new Array();
+					for each (var li:ListItem in children) {
+						if(li.plugin)
+							li.plugin.destroy();
+						listitems_vb.removeChild(li);
+					}
+				}
+				if(listitems_tb) {
+					listitems_tb.removeAllChildren();
+					listitems_tb.dataProvider = null;
+					listitems_tb.selectedIndex = -1;
+				}
+			}
+			
+			public function getModelValue(value:String):* {
+				return parentApplication.getModelValue(value);
+			}
+			
+			public function validate():Object {
+				var children:Array = listitems_vb.getChildren();
+				var result:Array = new Array();
+				for each (var li:TemplateItem in children) {
+					result.concat(li.validate());
+				}
+				
+				var validationresult:Object = {valid:true, reason:[]};
+				
+				for each(var valresult:Object in result) {
+					if(!valresult.valid) {
+						validationresult.reason.concat(valresult.reason);
+						validationresult.valid = false;
+					}
+				}
+				
+				return validationresult;
+			}
+			
+			
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				if(_dataChanged) {
+					_dataChanged = false;
+					_deftypes = parentApplication.getTemplatesById(data.definitionids);
+					_definitionsLoaded = true;
+					
+					//{type:'TEMPLATELABEL', value: {title:'DEFAULT TITLE'}};
+				}
+				
+				if(_valueChanged && _definitionsLoaded) {
+					_valueChanged = false;
+					for each(var val:Object in _value) {
+						
+						//Check if decoding is needed
+						if(val is String)
+							val = JSON.decode(val.toString());
+						
+						for each(var type:Template in _deftypes) {
+							if(val && type.itemtype == val.type) {
+								// Check for null, shouldn't be possible anymore,
+								// But pre 1.2.x versions didn't check for null values on save
+								// Removed the tostring()
+								_addListItem(type, (val.value !== null) ? val.value : null);
+								break;
+							}
+						}
+					}
+					_tabs.refresh();
+				}
+				
+				if(_tabsChanged) {
+					_tabsChanged = false;
+					var i:int = 0;
+					var ch:Array = listitems_vb.getChildren();
+					for each(var ti:TemplateItem in ch) {
+						try {
+							if((ti.template.getChildAt(0) as IPlugin).value == "") {
+								(ti.template.getChildAt(0) as IPlugin).value = "Untitled";
+							}
+							_tabs[i] = (ti.template.getChildAt(0) as IPlugin).value;
+						}catch(ex:Error) {
+							_tabs[i] = "Tab";
+						}
+						i++;
+					}
+					while(_tabs.length > i) {
+						_tabs.removeItemAt(i);
+					}
+					_tabs.refresh();
+				}
+			}
+			
+			private function _addListItem(type:Template = null, fnvalue:* = null):void {
+				if(_maximum > -1 && listitems_vb.numChildren == _maximum) {
+					Alert.show("This list has a maximum of " + _maximum + " items", "Cannot add item");
+					return;
+				}
+				var template:Template = (type) ? type : deftype_cmb.selectedItem as Template;
+				var pluginBox:PluginBox = new PluginBox();
+				var tabname:String = "Tab";
+				pluginBox.plugins = parentApplication.getModelValue('templateVO.plugins');
+				pluginBox.addTitle = true;
+				pluginBox.template = template;
+				pluginBox.setStyle("paddingTop", 0);
+				
+				if(fnvalue) {
+					if(fnvalue.hasOwnProperty("title"))
+						tabname = fnvalue.title;
+					pluginBox.setValues(fnvalue);
+				}
+					
+				pluginBox.addEventListener(FileExplorerEvent.OPENFILEEXPLOREREVENT, _openFileExplorer, false, 0, true);
+				pluginBox.addEventListener(BrightEvent.DATAEVENT, _pluginDataEvent);
+								
+				var li:TemplateItem = new TemplateItem("lr");
+				li.addEventListener("moveup", _moveUp);
+				li.addEventListener("movedown", _moveDown);
+				li.template = pluginBox;
+				li.type = template.itemtype;
+				listitems_vb.addChild(li);
+				
+				if(!_tabs) {
+					_tabs = new ArrayCollection();
+				}
+					
+				_tabs.addItem(tabname);
+				
+				if(type || fnvalue)
+					return;
+					
+				listitems_vb.visible =
+				listitems_vb.includeInLayout = true;
+				/* collapse_btn.source = IconController.UPARROW;  */
+			}
+			
+			private function _openFileExplorer(event:FileExplorerEvent):void {
+				dispatchEvent(new FileExplorerEvent(event.type, event.callback, event.multiple, event.filter, event.foldersOnly, event.bubbles, event.cancelable));
+			}
+			
+			private function _pluginDataEvent(event:BrightEvent):void {
+				dispatchEvent(new BrightEvent(event.type, event.data));
+			}
+			
+			private function _moveDown(event:Event):void {
+				var index:int = listitems_vb.getChildIndex(event.currentTarget as DisplayObject);
+				if(index < listitems_vb.numChildren - 1)
+					listitems_vb.addChildAt(listitems_vb.removeChildAt(index), index+1);
+			}
+			
+			private function _moveUp(event:Event):void {
+				var index:int = listitems_vb.getChildIndex(event.currentTarget as DisplayObject);
+				if(index > 0)
+					listitems_vb.addChildAt(listitems_vb.removeChildAt(index), index-1);
+			}
+			
+			private function _changeIndex():void {
+				listitems_vb.selectedIndex = listitems_tb.selectedIndex;
+				_tabsChanged = true;
+				invalidateProperties();
+			}
+			
+			private function _updateTabs(event:ChildExistenceChangedEvent):void {
+				_tabsChanged = true;
+				invalidateProperties();
+			}
+			
+			
+			
+			override public function set label(value:String):void {
+				super.label = value;
+				_label = value;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(value:String):void {
+				if(value !== _displaylabel) {
+					_displaylabel = value;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				
+				if(!val) 
+					return;
+				
+				_data = val;
+				
+				if(_data.hasOwnProperty("minimum"))
+					_minimum = _data.minimum;
+				if(_data.hasOwnProperty("maximum"))
+					_maximum = _data.maximum;
+				if(_data.hasOwnProperty("defaulttabIds")) {
+					
+				}
+				
+				_dataChanged = true;
+				invalidateProperties();
+			}
+			
+			public function set value(value:*):void {
+				if(!(value is Array))
+					value = [value];
+				_value = value as Array;
+				_valueChanged = true;
+				invalidateProperties();
+			}
+			
+			public function get value():* {
+				if(!listitems_vb)
+					return null;
+				
+				var children:Array = listitems_vb.getChildren();
+				var result:Array = new Array();
+				for each (var li:TemplateItem in children) {
+					// Ignore null values
+					if(li.value !== null)
+						result.push(JSON.encode({type:li.type, value:li.value}));
+				}
+				return result;
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+		
+		]]>
+	</mx:Script>
+		
+	<mx:Canvas
+		styleName="headerBar"
+		height="70"
+		width="100%">
+		
+		<mx:Label
+			x="10"
+			y="5"
+			width="150"
+			text="{displaylabel + ':'}"
+			id="label_lbl" />
+			
+		<mx:ComboBox
+			x="160"
+			y="5"
+			id="deftype_cmb"
+			labelField="templatename"
+			width="150"
+			dataProvider="{_deftypes}" />
+		
+		<components:GrayImageButton
+			x="320"
+			y="6"
+			source="{IconController.getGray('add')}"
+			click="_addListItem()" />
+			
+		<mx:TabBar
+			x="10"
+			bottom="0"
+			id="listitems_tb"
+			width="100%"
+			dataProvider="{_tabs}"
+			selectedIndex="{listitems_vb.selectedIndex}"
+			itemClick="_changeIndex()" />
+			
+	</mx:Canvas>
+		
+			
+	<mx:ViewStack
+		childIndexChange="invalidateDisplayList()"
+		childRemove="_updateTabs(event)"
+		
+		styleName="innerVBox"
+		width="100%"
+		height="100%"
+		resizeToContent="true"
+		paddingBottom="20"
+		paddingLeft="5"
+		paddingRight="5"
+		backgroundAlpha=".1"
+		backgroundColor="#ffffff"
+		id="listitems_vb">
+		
+	</mx:ViewStack>
+	
+</mx:Module>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:components="nl.bs10.brightlib.components.*"
+	layout="vertical" 
+	title="Enter URL"
+	showCloseButton="true"
+	close="close(event)"
+	width="500"
+	height="160">
+	<mx:Script>
+		<![CDATA[
+			import mx.events.CloseEvent;
+			import mx.managers.PopUpManager;
+			
+			import nl.fur.bright.fileexplorer.commands.UploadFromUrlCommand;
+			import nl.fur.vein.controllers.CommandController;
+			
+			public function close(event:CloseEvent = null):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			private function _onUrlOut(event:FocusEvent):void {
+				if(url_txt.text != '' && (filename_txt.text ==  null || filename_txt.text =='')) {
+					filename_txt.text = url_txt.text.split('/').pop().toString();
+				}
+			}
+			
+			private function onSubmit(event:MouseEvent):void {
+				CommandController.addToQueue(new UploadFromUrlCommand(), url_txt.text, filename_txt.text, this);
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<components:LabeledInput
+		label="URL:"
+		labelWidth="70"
+		width="100%"
+		focusOut="_onUrlOut(event)"
+		id="url_txt" />
+	
+	<components:LabeledInput
+		label="Filename:"
+		labelWidth="70"
+		width="100%"
+		id="filename_txt" />
+	
+	<mx:HBox
+		horizontalAlign="right"
+		width="100%">
+		
+		<mx:Button
+			click="close()"
+			label="Cancel" />
+		
+		<mx:Button
+			click="onSubmit(event)"
+			label="OK" />
+		
+	</mx:HBox>
+	
+</mx:TitleWindow>

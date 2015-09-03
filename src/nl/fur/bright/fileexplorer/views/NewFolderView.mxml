@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	layout="vertical" 
+	title="Create new folder"
+	showCloseButton="true"
+	show="foldername_txt.setFocus()"
+	close="_cancel()"
+	width="360" 
+	height="120">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.managers.PopUpManager;
+			import nl.fur.bright.fileexplorer.commands.CreateFolderCommand;
+			import nl.fur.vein.controllers.CommandController;
+			
+			private function _createFolder():void {
+				CommandController.addToQueue(new CreateFolderCommand(), foldername_txt.text, this);
+			}
+			
+			private function _cancel():void {
+				PopUpManager.removePopUp(this);
+			}
+			
+			private function _createFolderEnter():void {
+				if(foldername_txt.text != "") {
+					_createFolder();
+				}
+			}
+
+		]]>
+	</mx:Script>
+		
+	<mx:HBox
+		width="100%">
+		
+		<mx:Label
+			text="Foldername:" />
+			
+		<mx:TextInput
+			styleName="personalTextInput"
+			creationComplete="foldername_txt.setFocus()"
+			width="100%"
+			enter="_createFolderEnter()"
+			restrict="A-z0-9\-_"
+			maxChars="255"
+			id="foldername_txt" />
+	</mx:HBox>
+	
+	<mx:HBox
+		horizontalAlign="right"
+		width="100%">
+		
+		<mx:Button
+			click="_cancel()"
+			label="Cancel" />
+			
+		<mx:Button
+			enabled="{foldername_txt.text.length != 0}"
+			click="_createFolder()"
+			label="Create" />
+			
+	</mx:HBox>
+	
+</mx:TitleWindow>

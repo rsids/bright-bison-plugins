@@ -1,0 +1,162 @@
+
+
+Application {
+	background-color: 			#3d6383;
+	background-gradient-colors: #365a79, #5c87ab;
+	disabled-overlay-alpha: 	0;
+	modal-transparency:			0;
+	font-family:				arial;
+	font-size:					12px;
+}
+	
+Alert {
+	color:						#000000;
+}
+
+
+Canvas {
+/*	borderSkin: ClassReference("mx.skins.halo.HaloBorder");*/
+}
+
+/**************************
+ * Flex 4 fix start
+ */
+.borderTop {
+	borderSides:	"top";
+	borderThickness: 1;
+}
+
+.border {
+	borderThickness: 1;
+}
+.noborder {
+	borderThickness: 0;
+}
+	
+/*
+ * Flex 4 fix start
+ *************************/
+
+DataGrid {
+	alternating-item-colors:	#f2faff, #ffffff;
+	
+}
+
+
+HBox {
+	vertical-gap: 0;	
+}
+
+HDividedBox {
+	horizontal-gap: 20;	
+}
+
+HRule {
+	stroke-color:				#b7b7b7;
+	padding-top:				24;
+	padding-bottom:				10;
+}
+
+LinkBar {
+	font-size:					14;	
+	color:						#4f4f4f;
+	font-weight:				bold;
+}
+
+/*
+ * Rollovers
+ */
+List, DataGrid, DateChooser, FlpTree {
+	color:						#000000;
+	roll-over-color:			#5f83b9;
+	text-roll-over-color:		#ffffff;
+	selection-color:			#5a7caf;
+	text-selected-color:		#ffffff;
+}
+
+
+TabBar {
+	horizontal-gap:				2;
+	tab-width:					150;
+	label-placement:			left;
+	label-align:				left;
+	label-width:				150;
+	
+}
+
+TextInput {
+	font-family:				"arial";
+	color:						#000000;
+	font-weight:				normal;
+	font-size:					14pt;
+	padding-top:				4;
+	padding-bottom:				4;
+	padding-left:				3;
+	theme-color:				#39b9f4;
+}
+
+
+VBox {
+	vertical-gap: 0;	
+}
+
+VDividedBox {
+	vertical-gap: 20;	
+}
+
+
+.userBar {
+	color:						#ffffff;
+}
+
+
+.headerBar {
+	background-color:			#96aebc;
+	padding-top:				16;
+	padding-right:				16;
+	horizontal-align:			right;
+	padding-left:				44;
+}
+
+.editorVs {
+	background-color:			#eaeaea;
+}
+
+.innerVBox {
+	vertical-gap:				14;
+	padding-left:				44;
+	padding-right:				44;
+	padding-bottom:				28;
+	padding-top:				28;
+}
+
+.paddedBox {
+	vertical-gap:				4;
+	padding-left:				10;
+	padding-right:				10;
+	padding-bottom:				10;
+	padding-top:				10;
+}
+
+.listBox {
+	background-color:			#f3f3f3;
+	border-color:				#b6b6b6;
+	border-thickness:			1;
+	border-style:				solid;
+	corner-radius:				4;
+}
+
+.dragText {
+	font-size:					10pt;
+	leading:					0;
+	color:						#0a0a0a;
+	font-weight:				bold;	
+}
+
+.repeatitem {
+	background-color:			#F9F9F9;
+	border-style:				solid;
+	border-thickness:			1;
+	border-sides:				"top, bottom";
+	border-color:				#929292;	
+}

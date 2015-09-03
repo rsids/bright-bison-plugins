@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module 
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	verticalAlign="bottom"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="horizontal"
+	creationComplete="_onCreationComplete(event)"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:controls="nl.bs10.bright.controls.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import korax.controls.ColorPicker.ColorPickerEvent;
+			import korax.controls.ColorPicker.ColorPickerWindow;
+			
+			import nl.bs10.brightlib.objects.PluginProperties;
+			
+			private var _label:String;
+			private var _data:*;
+			private var _value:* = 0;
+			
+			private var _hexString:String;
+			private var _displaylabel:String;
+			
+			private var _dataChanged:Boolean;
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Colorpicker";
+				pp.version = "4.0.4";
+				pp.type = "colorpicker";
+				pp.contenttype = "string";
+				pp.modificationdate = new Date(2014,00,17);
+				pp.properties = [];
+				return pp;
+			}
+			
+			override public function set label(val:String):void {
+				super.label = val;
+				_label = val;
+			}
+			
+			override public function get label():String {
+				return this._label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(val:String):void {
+				if(val !== _displaylabel) {
+					_displaylabel = val;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				if(!val)
+					return; 
+				_data = val;
+				
+				if(_data.hasOwnProperty("value") && (!value || value.length == 0)) {
+					value = _data.value;
+					
+				}
+				
+				_dataChanged = true;
+				invalidateProperties();
+				
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			[Bindable(event="hexStringChanged")]
+			public function set hexString(val:String):void {
+				if(hexString !== val) {
+					if(val.indexOf('#') != -1) {
+						val = val.substr(1);
+					}
+					while(val.length < 6) {
+						val = '0' + val;
+					}
+					_hexString = '#' + val;
+					
+					
+					dispatchEvent(new Event('hexStringChanged'));
+				}
+			}
+			
+			public function get hexString():String {
+				return _hexString;
+			}
+			
+			[Bindable(event="valueChanged")]
+			public function set value(val:*):void {
+				if(value !== val) {
+					_value = val;
+					/*if(value)
+						hexString = value.toString(15);	*/
+					dispatchEvent(new Event('valueChanged'));
+				}
+			}
+			
+			public function get value():* {
+				return _value;
+			}
+			
+			public function validate():Object {
+				
+				if(_data && _data.hasOwnProperty("validationtype")) {
+					
+				} 
+				return {valid:true};
+			}
+			
+			public function destroy():void {
+				data =
+					label =
+					displaylabel = null;
+				removeEventListener("apply", _setColor, false);
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				if(!_dataChanged)
+					return;
+				_dataChanged = false;
+				
+				
+			}
+
+			private function _onCpClick(event:MouseEvent):void {
+				ColorPickerWindow.show_window(this, value, true);
+			}
+			
+			private function _setColor(event:ColorPickerEvent):void { 
+				value = event.color;
+			}
+			
+			private function _onCreationComplete(event:FlexEvent):void {
+				addEventListener("apply", _setColor, false, 0, true);
+			}
+			
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+	
+	<mx:Canvas
+		width="20"
+		height="20"
+		borderThickness="2"
+		borderColor="0xB7BABC"
+		borderStyle="solid"
+		backgroundColor="{value}"
+		click="_onCpClick(event)" />
+	
+</mx:Module>

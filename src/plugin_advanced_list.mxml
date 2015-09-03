@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module 	
+	horizontalAlign="left"
+	styleName="listBox"
+	width="100%"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	verticalAlign="top"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="vertical" 
+	verticalGap="0"
+	xmlns:components="nl.bs10.brightlib.components.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			
+			import mx.controls.Alert;
+			
+			import nl.bs10.brightlib.components.GrayImageButton;
+			import nl.bs10.brightlib.components.PluginBox;
+			import nl.bs10.brightlib.controllers.IconController;
+			import nl.bs10.brightlib.events.BrightEvent;
+			import nl.bs10.brightlib.events.FileExplorerEvent;
+			import nl.bs10.brightlib.interfaces.IPlugin;
+			import nl.bs10.brightlib.objects.PluginProperties;
+			import nl.bs10.brightlib.objects.Template;
+			import nl.bs10.list.ListItem;
+			import nl.bs10.list.TemplateItem;
+			
+			private var _label:String;			
+			[Bindable] private var _deftypes:Array;
+			
+			private var _definitionsLoaded:Boolean;
+			
+			private var _displaylabel:String;
+			private var _value:Array;
+
+			private var _data:Object;
+
+			private var _valueChanged:Boolean;
+			private var _dataChanged:Boolean;
+			
+			private var _maximum:Number = -1;
+			private var _minimum:Number = -1;
+			
+			private var _newItemsOnTop:Boolean = false;
+			private var _collapseItems:Boolean = false;
+
+			
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "List of templates";
+				pp.version = "2.1.1b";
+				pp.modificationdate = new Date(2014,0,20);
+				pp.type = "advanced_list";
+				pp.contenttype = "array";
+				pp.properties = [{name:"minimum", type:"number"}, {name:"maximum", type:"number"}, {name:"definitionids", type:"array"}, {name:'hideTitle', type:"boolean"}, {name:"newItemsOnTop", type:"boolean"}, {name:"collapseItems", type:"boolean"}];
+				return pp;
+			}
+			
+			public function destroy():void {
+				_deftypes = null;
+				data = 
+				value =
+				displaylabel =
+				label = null;
+				if(listitems_vb) {
+					var children:Array = listitems_vb.getChildren();
+					var result:Array = new Array();
+					for each (var li:ListItem in children) {
+						if(li.plugin)
+							li.plugin.destroy();
+						listitems_vb.removeChild(li);
+					}
+				}
+			}
+		
+			override public function set label(val:String):void {
+				super.label = val;
+				_label = val;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(val:String):void {
+				if(val !== _displaylabel) {
+					_displaylabel = val;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				
+				if(!val) 
+					return;
+				
+				_data = val;
+				
+				if(_data.hasOwnProperty("minimum"))
+					_minimum = _data.minimum;
+				if(_data.hasOwnProperty("maximum"))
+					_maximum = _data.maximum;
+				if(_data.hasOwnProperty("newItemsOnTop"))
+					_newItemsOnTop = _data.newItemsOnTop; 
+				if(_data.hasOwnProperty("collapseItems"))
+					_collapseItems = _data.collapseItems; 
+					
+				_dataChanged = true;
+				invalidateProperties();
+			}
+			
+			public function set value(val:*):void {
+				if(!(val is Array))
+					value = [val];
+				_value = val as Array;
+				_valueChanged = true;
+				invalidateProperties();
+			}
+				
+			public function get value():* {
+				if(!listitems_vb)
+					return _value;
+				
+				//var children:Array = listitems_vb.getChildren();
+				trace('getValue ' + label);
+				var nc:int = listitems_vb.numChildren;
+				var result:Array = new Array();
+				for(var i:int = 0; i < nc; i++) {
+					var li:TemplateItem = listitems_vb.getChildAt(i) as TemplateItem;
+					if(li.value !== null)
+						result.push(JSON.encode({type:li.type, value:li.value}));
+				}
+/*				for each (var li:TemplateItem in children) {
+					// Ignore null values
+					if(li.value !== null)
+						result.push(JSON.encode({type:li.type, value:li.value}));
+				}*/
+				return result;
+			}
+			
+			public function getModelValue(val:String):* {
+				return parentApplication.getModelValue(val);
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+			
+			public function validate():Object {
+				var children:Array = listitems_vb.getChildren();
+				var result:Array = new Array();
+				for each (var li:TemplateItem in children) {
+					result.concat(li.validate());
+				}
+				
+				var validationresult:Object = {valid:true, reason:[]};
+				
+				for each(var valresult:Object in result) {
+					if(!valresult.valid) {
+						validationresult.reason.concat(valresult.reason);
+						validationresult.valid = false;
+					}
+				}
+				
+				return validationresult;
+			}
+			
+			private function _addListItem(type:Template = null, fnvalue:* = null, collapse:Boolean = false):void {
+				if(_maximum > -1 && listitems_vb.numChildren == _maximum) {
+					Alert.show("This list has a maximum of " + _maximum + " items", "Cannot add item");
+					return;
+				}
+				var template:Template = (type) ? type : deftype_cmb.selectedItem as Template;
+				var pluginBox:PluginBox = new PluginBox();
+				pluginBox.plugins = parentApplication.getModelValue('templateVO.plugins');
+				pluginBox.addTitle = !data.hasOwnProperty('hideTitle') || data.hideTitle == false;
+				pluginBox.template = template;
+				pluginBox.setStyle("paddingTop", 0);
+				
+				if(fnvalue) {
+					pluginBox.setValues(fnvalue);
+				}
+					
+				pluginBox.addEventListener(FileExplorerEvent.OPENFILEEXPLOREREVENT, _openFileExplorer, false, 0, true);
+				pluginBox.addEventListener(BrightEvent.DATAEVENT, _dataEvent, false, 0, true);
+								
+				var li:TemplateItem = new TemplateItem("ud", collapse && pluginBox.addTitle);
+				li.addEventListener("moveup", _moveUp);
+				li.addEventListener("movedown", _moveDown);
+				li.template = pluginBox;
+				li.type = template.itemtype;
+				if(!_newItemsOnTop || fnvalue) {
+					listitems_vb.addChild(li);
+				} else {
+					listitems_vb.addChildAt(li, 0);
+				}
+				
+				if(type || fnvalue)
+					return;
+					
+				listitems_vb.visible =
+				listitems_vb.includeInLayout = true;
+			}
+			
+			private function _openFileExplorer(event:FileExplorerEvent):void {
+				dispatchEvent(new FileExplorerEvent(event.type, event.callback, event.multiple, event.filter, event.foldersOnly, event.bubbles, event.cancelable));
+			}
+			
+			private function _dataEvent(event:BrightEvent):void {
+				dispatchEvent(new BrightEvent(event.type, event.data, event.bubbles, event.cancelable));
+			}
+			
+			private function _moveDown(event:Event):void {
+				var index:int = listitems_vb.getChildIndex(event.currentTarget as DisplayObject);
+				if(index < listitems_vb.numChildren - 1)
+					listitems_vb.addChildAt(listitems_vb.removeChildAt(index), index+1);
+			}
+			
+			private function _moveUp(event:Event):void {
+				var index:int = listitems_vb.getChildIndex(event.currentTarget as DisplayObject);
+				if(index > 0)
+					listitems_vb.addChildAt(listitems_vb.removeChildAt(index), index-1);
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				if(_dataChanged) {
+					_dataChanged = false;
+					_deftypes = parentApplication.getTemplatesById(data.definitionids);
+					_definitionsLoaded = true;
+				}
+				
+				if(_valueChanged && _definitionsLoaded) {
+					_valueChanged = false;
+					for each(var val:Object in _value) {
+						
+						//Check if decoding is needed
+						if(val is String)
+							val = JSON.decode(val.toString());
+							
+						for each(var type:Template in _deftypes) {
+							if(val && type.itemtype == val.type) {
+								// Check for null, shouldn't be possible anymore,
+								// But pre 1.3.x versions didn't check for null values on save
+								// Changed val.value.toString() to val.value
+								_addListItem(type, (val.value !== null) ? val.value : null, _collapseItems);
+								break;
+							}
+						}
+					}
+				}
+				
+			}
+			
+			private function _collapse(event:MouseEvent):void {
+				listitems_vb.visible =
+				listitems_vb.includeInLayout = !listitems_vb.visible;
+				(event.currentTarget).source = (listitems_vb.visible) ? IconController.DOWNARROW : IconController.LEFTARROW;
+			}
+			
+		]]>
+	</mx:Script>
+		
+	<mx:HBox
+		paddingBottom="5"
+		paddingLeft="5"
+		paddingRight="5"
+		paddingTop="5"
+		styleName="headerBar"
+		verticalAlign="middle"
+		width="100%">
+		
+		<mx:Label
+			width="150"
+			text="{displaylabel + ':'}"
+			id="label_lbl" />
+			
+		<mx:ComboBox
+			id="deftype_cmb"
+			labelField="templatename"
+			width="150"
+			dataProvider="{_deftypes}" />
+		
+		<components:GrayImageButton
+			source="{IconController.getGray('add')}"
+			click="_addListItem(null, null, false)" />
+				
+			<mx:Spacer width="100%" />
+			
+			<components:GrayImageButton
+				source="{IconController.DOWNARROW}"
+				toolTip="Collapse"
+				id="collapse_btn"
+				click="_collapse(event)" />
+			
+	</mx:HBox>
+		
+		
+	<mx:VBox
+		childIndexChange="invalidateDisplayList()"
+		childRemove="invalidateDisplayList()"
+		styleName="innerVBox"
+		width="100%"
+		height="100%"
+		paddingBottom="20"
+		paddingLeft="5"
+		paddingRight="5"
+		paddingTop="5"
+		backgroundAlpha=".1"
+		backgroundColor="#ffffff"
+		id="listitems_vb">
+		
+	</mx:VBox>
+	
+</mx:Module>

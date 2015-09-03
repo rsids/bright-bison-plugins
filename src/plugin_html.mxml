@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Module 
+	horizontalAlign="left"
+	styleName="pluginStyle"
+	width="100%"
+	verticalAlign="bottom"
+	implements="nl.bs10.brightlib.interfaces.IPlugin"
+	layout="horizontal" 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:controls="nl.bs10.bright.controls.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import nl.bs10.brightlib.objects.PluginProperties;
+			
+			private var _label:String;
+			private var _data:*;
+			private var _value:String = "";
+			
+			private var _displaylabel:String;
+			private var _textValue:String;
+			
+			private var _dataChanged:Boolean = false;
+			
+		
+			public function getProperties():PluginProperties {
+				var pp:PluginProperties = new PluginProperties();
+				pp.pluginname = "Rich Text Editor";
+				pp.version = "3.0.2";
+				pp.type = "html";
+				pp.contenttype = "string";
+				pp.modificationdate = new Date(2012,05,22);
+				pp.properties = [{name: "required", type:"boolean"}];
+				return pp;
+			}
+		
+			override public function set label(value:String):void {
+				super.label = value;
+				_label = value;
+			}
+			
+			override public function get label():String {
+				return _label;
+			}
+			
+			[Bindable(event='displaylabelChanged')]
+			public function set displaylabel(value:String):void {
+				if(value !== _displaylabel) {
+					_displaylabel = value;
+					dispatchEvent(new Event('displaylabelChanged'));
+				}
+				
+			}
+			
+			public function get displaylabel():String {
+				return _displaylabel;
+			}
+			
+			[Bindable(event="textValueChanged")]
+			public function get textValue():String
+			{
+				return _textValue;
+			}
+			
+			public function set textValue(val:String):void {
+				if(val !== _textValue) {
+					if(val != null) {
+						var r:RegExp = new RegExp('<img[^>]*>', 'gi');
+						val = val.replace(r, '');
+						val = val.replace("<a ", "<u><a ");
+						val = val.replace("</a>", "</a></u>");
+					}
+					_textValue = val;
+					dispatchEvent(new Event("textValueChanged"));
+				}
+			}
+			
+			override public function set data(val:Object):void {
+				super.data = val;
+				if(!val)
+					return; 
+				_data = val;
+				
+				if(_data.hasOwnProperty("value") && (!value || value.length == 0))
+					value = _data.value;
+				
+				_dataChanged = true;
+				invalidateProperties();
+				
+			}
+			
+			override public function get data():Object {
+				return _data;
+			}
+				
+			public function set value(fnvalue:*):void {
+				textValue = 
+				_value = (fnvalue) ? fnvalue.toString() : null;
+			}
+			
+			public function get value():* {
+				return _value; 
+			}
+			
+			public function validate():Object {
+				
+				return {valid:true};
+			}
+			
+			public function openEditor():void {
+				ExternalInterface.call("openEditor", value, _label + "flCloseEditor");
+				ExternalInterface.addCallback(_label + "flCloseEditor", flCloseEditor);
+			}
+			
+			public function flCloseEditor(fnvalue:*):void {
+				
+				value = fnvalue;
+				
+				if(String(fnvalue) == '')
+					value = '';
+			}
+			
+			public function destroy():void {
+				data =
+				value =
+				label =
+				displaylabel =
+				textValue = null;
+			}
+			
+			override protected function commitProperties():void {
+				super.commitProperties();
+				if(!_dataChanged)
+					return;
+				_dataChanged = false;
+				
+				text_txt.maxChars = (_data.hasOwnProperty('maxChars')) ? _data.maxChars : null;
+				text_txt.restrict = (_data.hasOwnProperty('restrict')) ? _data.restrict : null;
+				
+			}
+
+		]]>
+	</mx:Script>
+	
+	<mx:Label
+		width="150"
+		text="{displaylabel + ':'}"
+		id="label_lbl" />
+		
+	<controls:BrightTextArea
+		fieldname="{displaylabel}"
+		editable="false"
+		width="100%"
+		height="150"
+		toolTip="Doubleclick to edit"
+		doubleClickEnabled="true"
+		useHandCursor="true"
+		buttonMode="true"
+		htmlText="{textValue}"
+		doubleClick="openEditor()"
+		id="text_txt" />
+		
+</mx:Module>

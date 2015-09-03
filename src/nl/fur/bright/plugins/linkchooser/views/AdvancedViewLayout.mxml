@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<views:AdvancedView 
+	paddingLeft="5"
+	paddingRight="5"
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:views="nl.fur.bright.plugins.linkchooser.views.*" 
+	width="100%" 
+	height="100%">
+	
+	<mx:VBox 
+		verticalGap="5"
+		paddingLeft="5"
+		paddingRight="5"
+		paddingTop="5"
+		borderSides="top, left, bottom, right"
+		styleName="editorVs"
+		width="100%"
+		height="100%">
+	
+		<mx:Label
+			text="Title:" />
+		
+		<mx:TextInput
+			focusOut="onTitleFocusOut(event)"
+			id="title_txt"
+			width="100%" />
+		
+		<mx:Label
+			text="Target:" />
+		
+		<mx:ComboBox
+			width="100%"
+			change="onTargetChange(event)"
+			dataProvider="{TARGETS}" />
+		
+	</mx:VBox>
+	
+</views:AdvancedView>
