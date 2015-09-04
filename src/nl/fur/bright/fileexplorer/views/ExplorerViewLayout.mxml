@@ -12,6 +12,7 @@
 			import nl.bs10.brightlib.controllers.IconController;
 			import nl.fur.bright.fileexplorer.controllers.AppController;
 			import nl.fur.bright.fileexplorer.model.Model;
+
 		]]>
 	</mx:Script>
 	
@@ -238,31 +239,31 @@
 					width="100%"
 					height="80">
 					
-					<mx:Label
-						x="0" 
-						y="10" 
-						width="83" 
-						text="Dimensions:" 
-						textAlign="right"/>
-					
-					<mx:Label 
-						x="91" 
-						y="10"
-						width="200"
-						text="{dimensions}"/>
-					
 					<mx:Label 
 						x="0"
-						y="34" 
+						y="10"
 						width="83" 
 						text="Filesize:" 
 						textAlign="right"/>
 					
 					<mx:Label 
 						x="91" 
-						y="34" 
+						y="10"
 						width="200"
 						text="{Model.instance.filesVO.formatFileSize(Model.instance.filesVO.currentFile.filesize)}"/>
+
+                    <mx:Label
+                            x="0"
+                            y="34"
+                            width="83"
+                            text="Last modified:"
+                            textAlign="right"/>
+
+                    <mx:Label
+                            x="91"
+                            y="34"
+                            width="200"
+                            text="{dateFormatter.format(Model.instance.filesVO.currentFile.flmodificationdate)}"/>
 					
 				</mx:Canvas>
 				

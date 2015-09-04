@@ -1,12 +1,19 @@
-!#/bin/bash
+#!/bin/bash
 
-shopt -s nullglob
 
-for file in ./src/plugin_*.mxml
-do
-    FILENAME=`echo $file| cut -d'/' -f 3`
-    PLUGINNAME=`echo $FILENAME| cut -d'.' -f 1`
-    echo "mxmlc $file -load-config+=config.xml -output bin/$PLUGINNAME.swf"
-    `mxmlc $file -load-config+=config.xml -output bin/$PLUGINNAME.swf
+if [ "$1" = "" ]; then
+    shopt -s nullglob
 
-done
+    for file in ./src/plugin_*.mxml
+    do
+        FILENAME=`echo $file| cut -d'/' -f 3`
+        PLUGINNAME=`echo $FILENAME| cut -d'.' -f 1`
+        echo "mxmlc $file -load-config+=config.xml -output bin/$PLUGINNAME.swf"
+        mxmlc $file -load-config+=config.xml -output bin/$PLUGINNAME.swf
+
+    done
+else
+
+    mxmlc ./src/$1.mxml -load-config+=config.xml -output bin/$1.swf
+
+fi

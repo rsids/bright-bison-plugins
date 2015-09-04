@@ -30,6 +30,7 @@ package nl.fur.bright.fileexplorer.views
 	import mx.events.CloseEvent;
 	import mx.events.DragEvent;
 	import mx.events.ListEvent;
+    import mx.formatters.DateFormatter;
 	import mx.managers.DragManager;
 	import mx.managers.PopUpManager;
 	
@@ -68,12 +69,17 @@ package nl.fur.bright.fileexplorer.views
 		[Bindable] public var props_vs:ViewStack;
 		[Bindable] public var dimensions:String = '';
 		[Bindable] public var id3:Object;
-		
+
+        public var dateFormatter:DateFormatter = new DateFormatter();
+
 		private var _moveObj:Object;
-		
+
 		private var _parent:Folder;
-		
-		
+
+		function ExplorerView() {
+            super();
+            dateFormatter.formatString ='YYYY-MM-DD J:NN:SS';
+        }
 		
 		public function setFilters(event:VeinEvent = null):void {
 			

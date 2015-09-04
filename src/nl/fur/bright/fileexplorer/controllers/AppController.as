@@ -131,8 +131,8 @@ package nl.fur.bright.fileexplorer.controllers {
 		public function getProperties():PluginProperties {
 			var pp:PluginProperties = new PluginProperties();
 			pp.pluginname = "Bright File Manager";
-			pp.version = "5.1.0";
-			pp.modificationdate = new Date(2015,09,31);
+			pp.version = "5.1.2";
+			pp.modificationdate = new Date(2015,10,04);
 			pp.type = "explorer";
 			pp.isplugin = false;
 			return pp;
