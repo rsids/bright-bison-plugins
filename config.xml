@@ -19,7 +19,7 @@
         <context-root>context-path</context-root>
         -->
         <!-- compiler.debug: generates a movie that is suitable for debugging-->
-        <debug>true</debug>
+        <debug>false</debug>
         <!-- compiler.defaults-css-files usage:
         <defaults-css-files>
            <filename>string</filename>
@@ -366,12 +366,12 @@
 
     <runtime-shared-library-path>
         <path-element>${flexlib}/libs/framework.swc</path-element>
-        <rsl-url>rsl/framework_3.5.0.12683.swf</rsl-url>
+        <rsl-url>/bright/cms/rsl/framework_3.5.0.12683.swf</rsl-url>
     </runtime-shared-library-path>
 
     <runtime-shared-library-path>
         <path-element>libs/library.swc</path-element>
-        <rsl-url>rsl/library.swf</rsl-url>
+        <rsl-url>/bright/cms/rsl/library.swf</rsl-url>
     </runtime-shared-library-path>
     <!-- static-link-runtime-shared-libraries: statically link the libraries specified by the -runtime-shared-libraries-path option.-->
     <static-link-runtime-shared-libraries>false</static-link-runtime-shared-libraries>
