@@ -19,6 +19,9 @@ package nl.fur.bright.fileexplorer.commands
 		override public function execute(...args):void {
 			super.execute(args);
 			var call:Object = ServiceController.getService("fileService").getFiles(args[0][0].path, true, null, true);
+			if(args[0].length > 1) {
+				call.selectedFile = args[0][1];
+			}
 			call.resultHandler = this.resultHandler;
 			call.faultHandler = this.faultHandler;
 		}
@@ -26,6 +29,17 @@ package nl.fur.bright.fileexplorer.commands
 		override public function resultHandler(event:Event):void {
 			var result:ResultEvent = event as ResultEvent;
 			Model.instance.filesVO.files = new ArrayCollection(result.result as Array);
+			
+			if(result.token.hasOwnProperty('selectedFile')) {
+				var nf:uint = Model.instance.filesVO.files.length;
+				while(--nf > -1) {
+					if(Model.instance.filesVO.files[nf].filename == result.token.selectedFile) { 
+						Model.instance.filesVO.currentFile = Model.instance.filesVO.files[nf];
+						Model.instance.filesVO.selectedFileIndex = nf;
+					}
+				}
+			}
+			
 			VeinDispatcher.instance.dispatch('dataproviderChanged', null);
 			super.resultHandler(event);
 		}

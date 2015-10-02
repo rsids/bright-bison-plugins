@@ -111,14 +111,6 @@
 			horizontalScrollPolicy="off"
 			verticalScrollPolicy="off"
 			width="100%">
-			
-			<mx:Label
-				horizontalCenter="0"
-				verticalCenter="0"
-				visible="{Model.instance.filesVO.files.length == 0}"
-				includeInLayout="false"
-				selectable="false"
-				text="The selected folder is empty" />
 				
 			<mx:Spacer
 				width="100%" />
@@ -150,23 +142,72 @@
 				label="Select file(s)" />
 				
 		</mx:HBox>
-		
-		<mx:TileList
-			borderThickness="0"
-			id="files_list"
+
+        <mx:Canvas
 			width="100%"
-			height="100%"
-			direction="vertical"
-			selectionColor="#C6E8FA"
-			dragEnabled="true"
-			dragStart="startFileDrag(event)"
-			selectable="true"
-			selectedIndex="{Model.instance.filesVO.selectedFileIndex}"
-			allowMultipleSelection="{Model.instance.filesVO.multiple}"
-			itemClick="selectionChanged(event)"
-			itemRenderer="nl.fur.bright.fileexplorer.views.renderers.SmallFileRenderer"
-			dataProvider="{Model.instance.filesVO.files}" />
-			
+			height="100%">
+
+            <mx:TileList
+                width="100%"
+                height="100%"
+                borderThickness="0"
+                id="files_list"
+                direction="vertical"
+                selectionColor="#C6E8FA"
+                dragEnabled="true"
+                dragStart="startFileDrag(event)"
+                selectable="true"
+                selectedIndex="{Model.instance.filesVO.selectedFileIndex}"
+                allowMultipleSelection="{Model.instance.filesVO.multiple}"
+                itemClick="selectionChanged(event)"
+                itemRenderer="nl.fur.bright.fileexplorer.views.renderers.SmallFileRenderer"
+                dataProvider="{Model.instance.filesVO.files}" />
+
+            <!--<mx:DataGrid-->
+                <!--width="100%"-->
+                <!--height="100%"-->
+                <!--selectionColor="#C6E8FA"-->
+                <!--dragEnabled="true"-->
+                <!--dragStart="startFileDrag(event)"-->
+                <!--selectable="true"-->
+                <!--selectedIndex="{Model.instance.filesVO.selectedFileIndex}"-->
+                <!--allowMultipleSelection="{Model.instance.filesVO.multiple}"-->
+                <!--itemClick="selectionChanged(event)"-->
+                <!--dataProvider="{Model.instance.filesVO.files}">-->
+
+                <!--<mx:columns>-->
+
+                    <!--<mx:DataGridColumn-->
+                        <!--headerText="Filename"-->
+                        <!--editable="false"-->
+                        <!--dataField="filename" />-->
+
+                    <!--<mx:DataGridColumn-->
+                        <!--width="100"-->
+                        <!--headerText="Filesize"-->
+                        <!--editable="false"-->
+                        <!--dataField="filesize" />-->
+
+                    <!--<mx:DataGridColumn-->
+                        <!--width="100"-->
+                        <!--headerText="Last modified"-->
+                        <!--editable="false"-->
+                        <!--dataField="flmodificatiodate" />-->
+                <!--</mx:columns>-->
+
+            <!--</mx:DataGrid>-->
+
+            <mx:Label
+                horizontalCenter="0"
+                verticalCenter="0"
+                visible="{Model.instance.filesVO.files.length == 0}"
+                includeInLayout="false"
+                selectable="false"
+                text="The selected folder is empty" />
+
+        </mx:Canvas>
+
+
 		
 		<mx:Canvas
 			width="100%"

@@ -16,6 +16,7 @@ package nl.fur.bright.fileexplorer.commands
 	import flash.net.URLVariables;
 	import flash.utils.ByteArray;
 	
+	import mx.collections.ArrayCollection;
 	import mx.controls.Alert;
 	import mx.core.Application;
 	import mx.core.IFlexDisplayObject;
@@ -133,7 +134,8 @@ package nl.fur.bright.fileexplorer.commands
 				_failed.push("- " + result.message + ": " + result.thefile);
 				_current++;
 			} else {
-				Model.instance.filesVO.uploadFiles.removeItemAt(_current);
+//				Model.instance.filesVO.uploadFiles.removeItemAt(_current);
+				_current++;
 			}
 			if(Model.instance.filesVO.uploadFiles.length > _current) {
 				_uploadNextFile(); 
@@ -172,7 +174,17 @@ package nl.fur.bright.fileexplorer.commands
 		override public function resultHandler(event:Event):void {
 			super.resultHandler(event);
 			PopUpManager.removePopUp(_progressPopup);
-			CommandController.addToQueue(new GetFilesCommand(), Model.instance.filesVO.currentFolder);
+			/*Model.instance.filesVO.files = new ArrayCollection(result.result.files as Array);
+			var nf:uint = Model.instance.filesVO.files.length;
+			while(--nf > -1) {
+			if(Model.instance.filesVO.files[nf].filename == result.result.file) { 
+			Model.instance.filesVO.currentFile = Model.instance.filesVO.files[nf];
+			Model.instance.filesVO.selectedFileIndex = nf;
+			}
+			}*/
+			CommandController.addToQueue(new GetFilesCommand(), Model.instance.filesVO.currentFolder, Model.instance.filesVO.uploadFiles.getItemAt(0).remotename);
+			Model.instance.filesVO.uploadFiles.removeAll();
+			
 		}
 		
 		override public function faultHandler(event:Event):void {
