@@ -321,7 +321,7 @@ package nl.fur.bright.fileexplorer.views
 			ldr.contentLoaderInfo.addEventListener(HTTPStatusEvent.HTTP_STATUS, function():void{}, false, 0, true);
 			
 			var path:String = (file.path && file.path != 'null') ? file.path : "";
-			var url:String = '/bright/actions/image.php?mode=brightthumb&src=/' + Model.instance.filesVO.settings.uploadfolder + path + file.filename;
+			var url:String = '/images/brightthumb/' + Model.instance.filesVO.settings.uploadfolder + path + file.filename;
 			 
 			ldr.load(new URLRequest(url));
 		}
