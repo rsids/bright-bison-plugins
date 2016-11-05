@@ -54,8 +54,8 @@
 			public function getProperties():PluginProperties {
 				var pp:PluginProperties = new PluginProperties();
 				pp.pluginname = "File with description";
-				pp.version = "4.0.1";
-				pp.modificationdate = new Date(2012,06,25);
+				pp.version = "4.0.2";
+				pp.modificationdate = new Date(2016,10,5);
 				pp.type = "advanced_file";
 				pp.contenttype = "json";
 				pp.properties = [	{name:"required", type:"boolean"}, 
@@ -311,7 +311,7 @@
 					_setUnload();
 					if(_path != "") {
 						var ldr:Loader = new Loader();
-						ldr.load(new URLRequest(parentApplication.getModelValue('applicationVO.config.filesettings.fileurl') + _path));
+						ldr.load(new URLRequest('/images/brightthumb/' + parentApplication.getModelValue('applicationVO.config.filesettings.uploadfolder') + _path));
 						ldr.contentLoaderInfo.addEventListener(Event.COMPLETE, _loadComplete, false, 0, true);
 						ldr.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, _setUnload, false, 0, true);
 						ldr.contentLoaderInfo.addEventListener(HTTPStatusEvent.HTTP_STATUS, function():void{}, false, 0, true);
