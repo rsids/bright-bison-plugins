@@ -77,7 +77,11 @@ package nl.fur.bright.fileexplorer.views.renderers
 			
 			_label.text = toolTip = _file.filename;
 			_notFound = false;
-			_icon.source = "/bright/cms/assets/icons/" + _file.extension + ".png";
+			if(_file.extension.length > 2 && _file.extension.length < 5) {
+				_icon.source = "/bright/cms/assets/icons/" + _file.extension + ".png";
+			} else {
+				_icon.source = "/bright/cms/assets/icons/default_small.png";
+			}
 		}
 		
 		private function _iconNotFound(event:IOErrorEvent):void {
